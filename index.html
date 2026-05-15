@@ -605,6 +605,11 @@
             <h2 class="panel-title">配置与历史</h2>
             <p class="subtitle">管理模板，查看过去表现。</p>
           </div>
+          <div class="toolbar">
+            <button class="btn" id="exportDataBtn" type="button">导出数据</button>
+            <button class="btn" id="importDataBtn" type="button">导入数据</button>
+            <input id="importFileInput" type="file" accept="application/json,.json" hidden>
+          </div>
         </div>
         <div class="panel-body">
           <div class="tabs" role="tablist">
@@ -737,6 +742,9 @@
       addDailyTaskBtn: document.querySelector("#addDailyTaskBtn"),
       templateTab: document.querySelector("#templateTab"),
       historyTab: document.querySelector("#historyTab"),
+      exportDataBtn: document.querySelector("#exportDataBtn"),
+      importDataBtn: document.querySelector("#importDataBtn"),
+      importFileInput: document.querySelector("#importFileInput"),
       templatePanel: document.querySelector("#templatePanel"),
       historyPanel: document.querySelector("#historyPanel"),
       templateForm: document.querySelector("#templateForm"),
@@ -795,6 +803,12 @@
       els.addDailyTaskBtn.addEventListener("click", () => openTaskDialog("day"));
       els.cancelDialogBtn.addEventListener("click", () => els.taskDialog.close());
       els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
+      els.exportDataBtn.addEventListener("click", exportData);
+      els.importDataBtn.addEventListener("click", () => {
+        els.importFileInput.value = "";
+        els.importFileInput.click();
+      });
+      els.importFileInput.addEventListener("change", importData);
 
       els.templateTab.addEventListener("click", () => setTab("template"));
       els.historyTab.addEventListener("click", () => setTab("history"));
@@ -886,6 +900,72 @@
 
     function saveState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function exportData() {
+      const payload = {
+        app: "daily-checkin",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: state
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `日程打卡数据-${formatDate(new Date())}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast("数据已导出");
+    }
+
+    function importData(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || "{}"));
+          const importedState = normalizeImportedState(parsed);
+          if (!importedState) {
+            toast("导入失败：文件格式不正确");
+            return;
+          }
+          if (!confirm("导入后会替换当前浏览器里的所有打卡数据，继续吗？")) return;
+
+          state.templates = importedState.templates;
+          state.days = importedState.days;
+          saveState();
+          ensureDay(selectedDate);
+          renderAll();
+          toast("数据导入成功");
+        } catch (error) {
+          console.error("Import failed", error);
+          toast("导入失败：无法读取 JSON");
+        }
+      });
+      reader.readAsText(file, "utf-8");
+    }
+
+    function normalizeImportedState(parsed) {
+      const candidate = parsed?.data || parsed;
+      if (!candidate || !Array.isArray(candidate.templates) || !candidate.days || typeof candidate.days !== "object") {
+        return null;
+      }
+      return {
+        templates: candidate.templates.map((template) => ({
+          id: template.id || uid(),
+          name: String(template.name || "").trim() || "未命名任务",
+          category: template.category || "其他",
+          repeat: template.repeat || "daily",
+          weekday: template.repeat === "weekly" ? Number(template.weekday ?? 1) : null,
+          note: template.note || ""
+        })),
+        days: candidate.days
+      };
     }
 
     function ensureDay(date) {
