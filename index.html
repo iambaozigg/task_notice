@@ -790,7 +790,9 @@
           els.saveTemplateBtn.textContent = "添加到每日模板";
           toast("模板已更新");
         } else {
-          state.templates.push({ id: uid(), ...payload });
+          const template = { id: uid(), ...payload };
+          state.templates.push(template);
+          syncTemplateToDay(template, selectedDate);
           toast("已添加到每日模板");
         }
 
@@ -879,6 +881,23 @@
           }))
       };
       saveState();
+    }
+
+    function syncTemplateToDay(template, date) {
+      ensureDay(date);
+      if (!shouldTemplateRunOnDate(template, date)) return;
+
+      const tasks = state.days[date].tasks;
+      const alreadyExists = tasks.some((task) => task.templateId === template.id);
+      if (alreadyExists) return;
+
+      tasks.push({
+        ...template,
+        id: uid(),
+        templateId: template.id,
+        done: false,
+        createdFromTemplate: true
+      });
     }
 
     function renderAll() {
