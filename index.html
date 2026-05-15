@@ -373,6 +373,10 @@
       resize: vertical;
     }
 
+    .weekday-field[hidden] {
+      display: none;
+    }
+
     .history-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -629,6 +633,19 @@
                 <select id="templateRepeat">
                   <option value="daily">每日重复</option>
                   <option value="workday">工作日重复</option>
+                  <option value="weekly">每周重复</option>
+                </select>
+              </label>
+              <label class="field weekday-field" id="templateWeekdayField" hidden>
+                <span>星期几</span>
+                <select id="templateWeekday">
+                  <option value="1">星期一</option>
+                  <option value="2">星期二</option>
+                  <option value="3">星期三</option>
+                  <option value="4">星期四</option>
+                  <option value="5">星期五</option>
+                  <option value="6">星期六</option>
+                  <option value="0">星期日</option>
                 </select>
               </label>
               <label class="field">
@@ -726,6 +743,8 @@
       templateName: document.querySelector("#templateName"),
       templateCategory: document.querySelector("#templateCategory"),
       templateRepeat: document.querySelector("#templateRepeat"),
+      templateWeekdayField: document.querySelector("#templateWeekdayField"),
+      templateWeekday: document.querySelector("#templateWeekday"),
       templateNote: document.querySelector("#templateNote"),
       saveTemplateBtn: document.querySelector("#saveTemplateBtn"),
       templateList: document.querySelector("#templateList"),
@@ -753,6 +772,7 @@
       els.dateInput.value = selectedDate;
       ensureDay(selectedDate);
       bindEvents();
+      updateTemplateWeekdayVisibility();
       renderAll();
     }
 
@@ -774,6 +794,7 @@
 
       els.addDailyTaskBtn.addEventListener("click", () => openTaskDialog("day"));
       els.cancelDialogBtn.addEventListener("click", () => els.taskDialog.close());
+      els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
 
       els.templateTab.addEventListener("click", () => setTab("template"));
       els.historyTab.addEventListener("click", () => setTab("history"));
@@ -797,6 +818,7 @@
         }
 
         els.templateForm.reset();
+        updateTemplateWeekdayVisibility();
         saveState();
         renderAll();
       });
@@ -931,7 +953,7 @@
             <div class="task-name">${escapeHtml(task.name)}</div>
             <div class="task-meta">
               <span class="tag">${escapeHtml(task.category)}</span>
-              <span class="tag">${repeatLabel(task.repeat)}</span>
+              <span class="tag">${repeatLabel(task)}</span>
               ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
             </div>
           </div>
@@ -959,6 +981,7 @@
             <strong>${escapeHtml(task.name)}</strong>
             <div class="task-meta">
               <span class="tag">${escapeHtml(task.category)}</span>
+              <span class="tag">${repeatLabel(task)}</span>
               ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
             </div>
           </div>
@@ -1069,6 +1092,8 @@
         els.templateName.value = task.name;
         els.templateCategory.value = task.category;
         els.templateRepeat.value = task.repeat || "daily";
+        els.templateWeekday.value = String(task.weekday ?? 1);
+        updateTemplateWeekdayVisibility();
         els.templateNote.value = task.note || "";
         els.saveTemplateBtn.textContent = "保存模板修改";
         els.templateName.focus();
@@ -1079,6 +1104,7 @@
         if (editingTemplateId === id) {
           editingTemplateId = null;
           els.templateForm.reset();
+          updateTemplateWeekdayVisibility();
           els.saveTemplateBtn.textContent = "添加到每日模板";
         }
         saveState();
@@ -1106,6 +1132,7 @@
         name: els.templateName.value.trim(),
         category: els.templateCategory.value,
         repeat: els.templateRepeat.value,
+        weekday: els.templateRepeat.value === "weekly" ? Number(els.templateWeekday.value) : null,
         note: els.templateNote.value.trim()
       };
     }
@@ -1124,11 +1151,26 @@
         const day = new Date(`${date}T00:00:00`).getDay();
         return day >= 1 && day <= 5;
       }
+      if (repeat === "weekly") {
+        const day = new Date(`${date}T00:00:00`).getDay();
+        return day === Number(task.weekday ?? 1);
+      }
       return true;
     }
 
-    function repeatLabel(repeat) {
-      return repeat === "workday" ? "工作日重复" : "每日重复";
+    function repeatLabel(task) {
+      const repeat = task.repeat || "daily";
+      if (repeat === "workday") return "工作日重复";
+      if (repeat === "weekly") return `每周${weekdayLabel(task.weekday ?? 1)}`;
+      return "每日重复";
+    }
+
+    function weekdayLabel(value) {
+      return ["日", "一", "二", "三", "四", "五", "六"][Number(value)] || "一";
+    }
+
+    function updateTemplateWeekdayVisibility() {
+      els.templateWeekdayField.hidden = els.templateRepeat.value !== "weekly";
     }
 
     function formatDate(date) {
