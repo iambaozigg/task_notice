@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>日程打卡</title>
+  <style>
+    :root {
+      --bg: #f6f7f2;
+      --panel: #ffffff;
+      --text: #20251f;
+      --muted: #687064;
+      --line: #dfe4d9;
+      --primary: #2d6a4f;
+      --primary-dark: #1b4332;
+      --accent: #c65d3a;
+      --soft: #eef5ea;
+      --done: #d8efdf;
+      --danger: #b93535;
+      --shadow: 0 12px 34px rgba(38, 49, 35, 0.11);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        linear-gradient(135deg, rgba(45, 106, 79, 0.12), transparent 34%),
+        linear-gradient(315deg, rgba(198, 93, 58, 0.10), transparent 28%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 42px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--primary);
+      color: white;
+      font-size: 23px;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(26px, 4vw, 40px);
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    .today-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 6px 18px rgba(38, 49, 35, 0.07);
+    }
+
+    .today-picker input {
+      border: 0;
+      background: transparent;
+      min-width: 150px;
+      outline: none;
+      color: var(--text);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(223, 228, 217, 0.9);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      background: var(--soft);
+      border: 1px solid #d7e5d0;
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 76px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 25px;
+      color: var(--primary-dark);
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      min-height: 38px;
+      padding: 8px 13px;
+      border-radius: 8px;
+      background: #edf1e9;
+      border: 1px solid #d8dfd1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: #e4eadf;
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .btn.primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+      background: #fbefef;
+      border-color: #f0caca;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 8px;
+      background: #f2f4ef;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 68px;
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .task.done {
+      background: var(--done);
+      border-color: #b7dcc1;
+    }
+
+    .check {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 2px solid var(--primary);
+      background: white;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+    }
+
+    .task.done .check {
+      background: var(--primary);
+    }
+
+    .task-main {
+      min-width: 0;
+    }
+
+    .task-name {
+      font-weight: 700;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .task-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 1px 7px;
+      background: #f3ede4;
+      color: #7b4b27;
+      border-radius: 6px;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .empty {
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed #cfd8c8;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.55);
+      padding: 24px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+      background: #edf1e9;
+      border: 1px solid var(--line);
+      padding: 5px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    .tab {
+      min-height: 36px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .tab.active {
+      background: white;
+      color: var(--primary-dark);
+      box-shadow: 0 3px 12px rgba(38, 49, 35, 0.08);
+    }
+
+    .form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 8px;
+      min-height: 40px;
+      padding: 8px 10px;
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 72px;
+      resize: vertical;
+    }
+
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .day-cell {
+      aspect-ratio: 1;
+      min-width: 0;
+      border-radius: 7px;
+      background: #eef1ec;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      position: relative;
+    }
+
+    .day-cell.has-data {
+      color: var(--primary-dark);
+      background: #e4f2e7;
+      border-color: #b9d9c0;
+      font-weight: 700;
+    }
+
+    .day-cell.selected {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    .day-cell .rate {
+      position: absolute;
+      bottom: 4px;
+      font-size: 10px;
+      color: var(--primary);
+    }
+
+    .weekday {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .history-list {
+      margin-top: 14px;
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .progress {
+      width: 100%;
+      height: 9px;
+      background: #e7ece2;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #74a57f);
+      width: 0;
+    }
+
+    dialog {
+      width: min(460px, calc(100% - 28px));
+      border: 0;
+      border-radius: 8px;
+      box-shadow: 0 24px 80px rgba(22, 27, 20, 0.3);
+      padding: 0;
+    }
+
+    dialog::backdrop {
+      background: rgba(25, 32, 24, 0.45);
+    }
+
+    .dialog-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dialog-body {
+      padding: 18px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%) translateY(80px);
+      background: #20251f;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: 0.2s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 840px) {
+      .topbar,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: stretch;
+      }
+
+      .today-picker {
+        justify-content: space-between;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: min(100% - 20px, 1180px);
+        padding-top: 16px;
+      }
+
+      .panel-header,
+      .panel-body {
+        padding: 14px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .task {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .task-actions {
+        grid-column: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">✓</div>
+        <div>
+          <h1>日程打卡</h1>
+          <p class="subtitle">固定任务、每日执行、历史回看都在这里。</p>
+        </div>
+      </div>
+      <label class="today-picker">
+        <span>日期</span>
+        <input id="dateInput" type="date">
+      </label>
+    </header>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" id="currentDateTitle">今日任务</h2>
+            <p class="subtitle" id="currentDateSub">准备开始</p>
+          </div>
+          <div class="toolbar">
+            <button class="btn" id="todayBtn" type="button">今天</button>
+            <button class="btn primary" id="addDailyTaskBtn" type="button">新增任务</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="stats">
+            <div class="stat">
+              <strong id="doneCount">0</strong>
+              <span>已完成</span>
+            </div>
+            <div class="stat">
+              <strong id="totalCount">0</strong>
+              <span>总任务</span>
+            </div>
+            <div class="stat">
+              <strong id="completeRate">0%</strong>
+              <span>完成率</span>
+            </div>
+          </div>
+          <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+          <div class="task-list" id="taskList"></div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">配置与历史</h2>
+            <p class="subtitle">管理模板，查看过去表现。</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="templateTab" type="button">每日模板</button>
+            <button class="tab" id="historyTab" type="button">历史回看</button>
+          </div>
+
+          <section id="templatePanel">
+            <form class="form" id="templateForm">
+              <label class="field">
+                <span>任务名称</span>
+                <input id="templateName" maxlength="32" placeholder="例如：阅读 30 分钟" required>
+              </label>
+              <label class="field">
+                <span>分类</span>
+                <select id="templateCategory">
+                  <option>学习</option>
+                  <option>健康</option>
+                  <option>工作</option>
+                  <option>生活</option>
+                  <option>其他</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>重复</span>
+                <select id="templateRepeat">
+                  <option value="daily">每日重复</option>
+                  <option value="workday">工作日重复</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>备注</span>
+                <textarea id="templateNote" maxlength="120" placeholder="可选，比如完成标准或提醒"></textarea>
+              </label>
+              <button class="btn primary" type="submit" id="saveTemplateBtn">添加到每日模板</button>
+            </form>
+            <div class="history-list" id="templateList"></div>
+          </section>
+
+          <section id="historyPanel" hidden>
+            <div class="toolbar">
+              <button class="btn" id="prevMonthBtn" type="button">上月</button>
+              <strong id="monthTitle"></strong>
+              <button class="btn" id="nextMonthBtn" type="button">下月</button>
+            </div>
+            <div class="history-grid" id="weekdayRow"></div>
+            <div class="history-grid" id="historyGrid"></div>
+            <div class="history-list" id="historyList"></div>
+          </section>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="taskDialog">
+    <form method="dialog">
+      <div class="dialog-head">
+        <h3 id="dialogTitle">编辑任务</h3>
+        <button class="icon-btn" value="cancel" type="submit" aria-label="关闭">×</button>
+      </div>
+    </form>
+    <div class="dialog-body">
+      <form class="form" id="taskForm">
+        <input type="hidden" id="editingId">
+        <input type="hidden" id="editingScope">
+        <label class="field">
+          <span>任务名称</span>
+          <input id="taskName" maxlength="32" required>
+        </label>
+        <label class="field">
+          <span>分类</span>
+          <select id="taskCategory">
+            <option>学习</option>
+            <option>健康</option>
+            <option>工作</option>
+            <option>生活</option>
+            <option>其他</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>备注</span>
+          <textarea id="taskNote" maxlength="120"></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button class="btn" type="button" id="cancelDialogBtn">取消</button>
+          <button class="btn primary" type="submit">保存</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "daily-checkin-v1";
+    const defaultTemplates = [
+      { id: uid(), name: "晨间整理", category: "生活", repeat: "daily", note: "规划今天最重要的三件事" },
+      { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "" },
+      { id: uid(), name: "复盘记录", category: "学习", repeat: "workday", note: "写下一个收获或问题" }
+    ];
+
+    const state = loadState();
+    let selectedDate = formatDate(new Date());
+    let visibleMonth = selectedDate.slice(0, 7);
+    let editingTemplateId = null;
+
+    const els = {
+      dateInput: document.querySelector("#dateInput"),
+      currentDateTitle: document.querySelector("#currentDateTitle"),
+      currentDateSub: document.querySelector("#currentDateSub"),
+      doneCount: document.querySelector("#doneCount"),
+      totalCount: document.querySelector("#totalCount"),
+      completeRate: document.querySelector("#completeRate"),
+      progressBar: document.querySelector("#progressBar"),
+      taskList: document.querySelector("#taskList"),
+      todayBtn: document.querySelector("#todayBtn"),
+      addDailyTaskBtn: document.querySelector("#addDailyTaskBtn"),
+      templateTab: document.querySelector("#templateTab"),
+      historyTab: document.querySelector("#historyTab"),
+      templatePanel: document.querySelector("#templatePanel"),
+      historyPanel: document.querySelector("#historyPanel"),
+      templateForm: document.querySelector("#templateForm"),
+      templateName: document.querySelector("#templateName"),
+      templateCategory: document.querySelector("#templateCategory"),
+      templateRepeat: document.querySelector("#templateRepeat"),
+      templateNote: document.querySelector("#templateNote"),
+      saveTemplateBtn: document.querySelector("#saveTemplateBtn"),
+      templateList: document.querySelector("#templateList"),
+      prevMonthBtn: document.querySelector("#prevMonthBtn"),
+      nextMonthBtn: document.querySelector("#nextMonthBtn"),
+      monthTitle: document.querySelector("#monthTitle"),
+      weekdayRow: document.querySelector("#weekdayRow"),
+      historyGrid: document.querySelector("#historyGrid"),
+      historyList: document.querySelector("#historyList"),
+      taskDialog: document.querySelector("#taskDialog"),
+      dialogTitle: document.querySelector("#dialogTitle"),
+      taskForm: document.querySelector("#taskForm"),
+      editingId: document.querySelector("#editingId"),
+      editingScope: document.querySelector("#editingScope"),
+      taskName: document.querySelector("#taskName"),
+      taskCategory: document.querySelector("#taskCategory"),
+      taskNote: document.querySelector("#taskNote"),
+      cancelDialogBtn: document.querySelector("#cancelDialogBtn"),
+      toast: document.querySelector("#toast")
+    };
+
+    init();
+
+    function init() {
+      els.dateInput.value = selectedDate;
+      ensureDay(selectedDate);
+      bindEvents();
+      renderAll();
+    }
+
+    function bindEvents() {
+      els.dateInput.addEventListener("change", () => {
+        selectedDate = els.dateInput.value || formatDate(new Date());
+        visibleMonth = selectedDate.slice(0, 7);
+        ensureDay(selectedDate);
+        renderAll();
+      });
+
+      els.todayBtn.addEventListener("click", () => {
+        selectedDate = formatDate(new Date());
+        visibleMonth = selectedDate.slice(0, 7);
+        els.dateInput.value = selectedDate;
+        ensureDay(selectedDate);
+        renderAll();
+      });
+
+      els.addDailyTaskBtn.addEventListener("click", () => openTaskDialog("day"));
+      els.cancelDialogBtn.addEventListener("click", () => els.taskDialog.close());
+
+      els.templateTab.addEventListener("click", () => setTab("template"));
+      els.historyTab.addEventListener("click", () => setTab("history"));
+
+      els.templateForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const payload = readTemplateForm();
+        if (!payload.name) return;
+
+        if (editingTemplateId) {
+          const template = state.templates.find((item) => item.id === editingTemplateId);
+          Object.assign(template, payload);
+          editingTemplateId = null;
+          els.saveTemplateBtn.textContent = "添加到每日模板";
+          toast("模板已更新");
+        } else {
+          state.templates.push({ id: uid(), ...payload });
+          toast("已添加到每日模板");
+        }
+
+        els.templateForm.reset();
+        saveState();
+        renderAll();
+      });
+
+      els.taskForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const payload = {
+          name: els.taskName.value.trim(),
+          category: els.taskCategory.value,
+          note: els.taskNote.value.trim()
+        };
+        if (!payload.name) return;
+
+        const scope = els.editingScope.value;
+        const id = els.editingId.value;
+        if (scope === "template") {
+          const template = state.templates.find((item) => item.id === id);
+          Object.assign(template, payload);
+        } else if (scope === "day-new") {
+          ensureDay(selectedDate);
+          state.days[selectedDate].tasks.push({
+            id: uid(),
+            done: false,
+            createdFromTemplate: false,
+            ...payload
+          });
+        } else {
+          const task = state.days[selectedDate].tasks.find((item) => item.id === id);
+          Object.assign(task, payload);
+        }
+        saveState();
+        els.taskDialog.close();
+        renderAll();
+      });
+
+      els.prevMonthBtn.addEventListener("click", () => {
+        visibleMonth = shiftMonth(visibleMonth, -1);
+        renderHistory();
+      });
+
+      els.nextMonthBtn.addEventListener("click", () => {
+        visibleMonth = shiftMonth(visibleMonth, 1);
+        renderHistory();
+      });
+    }
+
+    function setTab(tab) {
+      const isHistory = tab === "history";
+      els.historyPanel.hidden = !isHistory;
+      els.templatePanel.hidden = isHistory;
+      els.historyTab.classList.toggle("active", isHistory);
+      els.templateTab.classList.toggle("active", !isHistory);
+      if (isHistory) renderHistory();
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && Array.isArray(saved.templates) && saved.days) return saved;
+      } catch (error) {
+        console.warn("Load failed", error);
+      }
+      return { templates: defaultTemplates, days: {} };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function ensureDay(date) {
+      if (state.days[date]) return;
+      state.days[date] = {
+        tasks: state.templates
+          .filter((task) => shouldTemplateRunOnDate(task, date))
+          .map((task) => ({
+            ...task,
+            repeat: task.repeat || "daily",
+            id: uid(),
+            templateId: task.id,
+            done: false,
+            createdFromTemplate: true
+          }))
+      };
+      saveState();
+    }
+
+    function renderAll() {
+      renderToday();
+      renderTemplates();
+      renderHistory();
+    }
+
+    function renderToday() {
+      const day = state.days[selectedDate] || { tasks: [] };
+      const total = day.tasks.length;
+      const done = day.tasks.filter((task) => task.done).length;
+      const rate = total ? Math.round((done / total) * 100) : 0;
+
+      els.currentDateTitle.textContent = dateTitle(selectedDate);
+      els.currentDateSub.textContent = total ? `${done} / ${total} 已完成` : "这一天还没有任务";
+      els.doneCount.textContent = done;
+      els.totalCount.textContent = total;
+      els.completeRate.textContent = `${rate}%`;
+      els.progressBar.style.width = `${rate}%`;
+
+      if (!total) {
+        els.taskList.innerHTML = `<div class="empty">暂无任务。可以新增当天任务，或在右侧配置每日模板。</div>`;
+        return;
+      }
+
+      els.taskList.innerHTML = day.tasks.map((task) => `
+        <article class="task ${task.done ? "done" : ""}">
+          <button class="check" type="button" data-action="toggle" data-id="${task.id}" aria-label="切换完成状态">${task.done ? "✓" : ""}</button>
+          <div class="task-main">
+            <div class="task-name">${escapeHtml(task.name)}</div>
+            <div class="task-meta">
+              <span class="tag">${escapeHtml(task.category)}</span>
+              <span class="tag">${repeatLabel(task.repeat)}</span>
+              ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
+            </div>
+          </div>
+          <div class="task-actions">
+            <button class="icon-btn" type="button" data-action="edit" data-id="${task.id}" aria-label="编辑">✎</button>
+            <button class="icon-btn" type="button" data-action="delete" data-id="${task.id}" aria-label="删除">×</button>
+          </div>
+        </article>
+      `).join("");
+
+      els.taskList.querySelectorAll("button[data-action]").forEach((button) => {
+        button.addEventListener("click", () => handleDayAction(button.dataset.action, button.dataset.id));
+      });
+    }
+
+    function renderTemplates() {
+      if (!state.templates.length) {
+        els.templateList.innerHTML = `<div class="empty">还没有每日固定任务。</div>`;
+        return;
+      }
+
+      els.templateList.innerHTML = state.templates.map((task) => `
+        <div class="history-item">
+          <div>
+            <strong>${escapeHtml(task.name)}</strong>
+            <div class="task-meta">
+              <span class="tag">${escapeHtml(task.category)}</span>
+              ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
+            </div>
+          </div>
+          <div class="task-actions">
+            <button class="icon-btn" type="button" data-action="edit-template" data-id="${task.id}" aria-label="编辑模板">✎</button>
+            <button class="icon-btn" type="button" data-action="delete-template" data-id="${task.id}" aria-label="删除模板">×</button>
+          </div>
+        </div>
+      `).join("");
+
+      els.templateList.querySelectorAll("button[data-action]").forEach((button) => {
+        button.addEventListener("click", () => handleTemplateAction(button.dataset.action, button.dataset.id));
+      });
+    }
+
+    function renderHistory() {
+      const [year, month] = visibleMonth.split("-").map(Number);
+      const firstDay = new Date(year, month - 1, 1);
+      const lastDay = new Date(year, month, 0);
+      const offset = firstDay.getDay();
+      const totalCells = Math.ceil((offset + lastDay.getDate()) / 7) * 7;
+      const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+
+      els.monthTitle.textContent = `${year} 年 ${month} 月`;
+      els.weekdayRow.innerHTML = weekdays.map((day) => `<div class="weekday">${day}</div>`).join("");
+
+      const cells = [];
+      for (let i = 0; i < totalCells; i += 1) {
+        const dayNumber = i - offset + 1;
+        if (dayNumber < 1 || dayNumber > lastDay.getDate()) {
+          cells.push(`<div class="day-cell" aria-hidden="true"></div>`);
+          continue;
+        }
+        const date = `${visibleMonth}-${String(dayNumber).padStart(2, "0")}`;
+        const summary = summarizeDay(date);
+        const hasData = summary.total > 0;
+        cells.push(`
+          <button class="day-cell ${hasData ? "has-data" : ""} ${date === selectedDate ? "selected" : ""}" type="button" data-date="${date}">
+            <span>${dayNumber}</span>
+            ${hasData ? `<span class="rate">${summary.rate}%</span>` : ""}
+          </button>
+        `);
+      }
+      els.historyGrid.innerHTML = cells.join("");
+      els.historyGrid.querySelectorAll("button[data-date]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedDate = button.dataset.date;
+          els.dateInput.value = selectedDate;
+          ensureDay(selectedDate);
+          renderAll();
+        });
+      });
+
+      const monthDays = Object.keys(state.days)
+        .filter((date) => date.startsWith(visibleMonth))
+        .sort()
+        .reverse();
+
+      els.historyList.innerHTML = monthDays.length
+        ? monthDays.map((date) => {
+            const summary = summarizeDay(date);
+            return `
+              <button class="history-item" type="button" data-date="${date}">
+                <strong>${date}</strong>
+                <span>${summary.done}/${summary.total}，${summary.rate}%</span>
+              </button>
+            `;
+          }).join("")
+        : `<div class="empty">这个月还没有打卡记录。</div>`;
+
+      els.historyList.querySelectorAll("button[data-date]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedDate = button.dataset.date;
+          els.dateInput.value = selectedDate;
+          ensureDay(selectedDate);
+          renderAll();
+        });
+      });
+    }
+
+    function handleDayAction(action, id) {
+      const tasks = state.days[selectedDate].tasks;
+      const task = tasks.find((item) => item.id === id);
+      if (!task) return;
+
+      if (action === "toggle") {
+        task.done = !task.done;
+        toast(task.done ? "已打卡" : "已取消打卡");
+      }
+
+      if (action === "edit") openTaskDialog("day", task);
+
+      if (action === "delete" && confirm("删除这一天的任务？")) {
+        state.days[selectedDate].tasks = tasks.filter((item) => item.id !== id);
+        toast("当天任务已删除");
+      }
+
+      saveState();
+      renderAll();
+    }
+
+    function handleTemplateAction(action, id) {
+      const task = state.templates.find((item) => item.id === id);
+      if (!task) return;
+
+      if (action === "edit-template") {
+        editingTemplateId = id;
+        els.templateName.value = task.name;
+        els.templateCategory.value = task.category;
+        els.templateRepeat.value = task.repeat || "daily";
+        els.templateNote.value = task.note || "";
+        els.saveTemplateBtn.textContent = "保存模板修改";
+        els.templateName.focus();
+      }
+
+      if (action === "delete-template" && confirm("删除这个每日模板？历史记录不会被删除。")) {
+        state.templates = state.templates.filter((item) => item.id !== id);
+        if (editingTemplateId === id) {
+          editingTemplateId = null;
+          els.templateForm.reset();
+          els.saveTemplateBtn.textContent = "添加到每日模板";
+        }
+        saveState();
+        renderAll();
+        toast("模板已删除");
+      }
+    }
+
+    function openTaskDialog(scope, task = null) {
+      const fallback = { id: uid(), name: "", category: "学习", note: "" };
+      const data = task || fallback;
+
+      els.dialogTitle.textContent = scope === "template" ? "编辑模板任务" : "编辑当天任务";
+      els.editingScope.value = task ? scope : "day-new";
+      els.editingId.value = data.id;
+      els.taskName.value = data.name;
+      els.taskCategory.value = data.category;
+      els.taskNote.value = data.note || "";
+      els.taskDialog.showModal();
+      els.taskName.focus();
+    }
+
+    function readTemplateForm() {
+      return {
+        name: els.templateName.value.trim(),
+        category: els.templateCategory.value,
+        repeat: els.templateRepeat.value,
+        note: els.templateNote.value.trim()
+      };
+    }
+
+    function summarizeDay(date) {
+      const tasks = state.days[date]?.tasks || [];
+      const total = tasks.length;
+      const done = tasks.filter((task) => task.done).length;
+      return { total, done, rate: total ? Math.round((done / total) * 100) : 0 };
+    }
+
+    function shouldTemplateRunOnDate(task, date) {
+      const repeat = task.repeat || "daily";
+      if (repeat === "daily") return true;
+      if (repeat === "workday") {
+        const day = new Date(`${date}T00:00:00`).getDay();
+        return day >= 1 && day <= 5;
+      }
+      return true;
+    }
+
+    function repeatLabel(repeat) {
+      return repeat === "workday" ? "工作日重复" : "每日重复";
+    }
+
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function uid() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function dateTitle(date) {
+      const target = new Date(`${date}T00:00:00`);
+      const formatter = new Intl.DateTimeFormat("zh-CN", {
+        month: "long",
+        day: "numeric",
+        weekday: "long"
+      });
+      return formatter.format(target);
+    }
+
+    function shiftMonth(monthValue, step) {
+      const [year, month] = monthValue.split("-").map(Number);
+      const date = new Date(year, month - 1 + step, 1);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function toast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => els.toast.classList.remove("show"), 1600);
+    }
+  </script>
+</body>
+</html>
