@@ -6,7 +6,6 @@
   <title>日程打卡</title>
   <style>
     :root {
-      --page-scale: 1;
       --bg: #f6f7f2;
       --panel: #ffffff;
       --text: #20251f;
@@ -53,7 +52,6 @@
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
       padding: 28px 0 42px;
-      zoom: var(--page-scale);
     }
 
     .topbar {
@@ -451,6 +449,38 @@
       padding-right: 4px;
     }
 
+    #templateList {
+      height: var(--template-list-height, 260px);
+      max-height: 65vh;
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .template-list-resize {
+      width: 100%;
+      min-height: 28px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #eef1ec;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      cursor: ns-resize;
+      user-select: none;
+      touch-action: none;
+      font-size: 13px;
+    }
+
+    .template-list-resize::before {
+      content: "";
+      width: 46px;
+      height: 4px;
+      border-radius: 999px;
+      background: #aeb9a8;
+      box-shadow: 0 7px 0 #c4ccc0;
+    }
+
     .history-item {
       display: flex;
       justify-content: space-between;
@@ -528,31 +558,6 @@
     .toast.show {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
-    }
-
-    .page-resize-handle {
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      z-index: 9;
-      width: 42px;
-      height: 42px;
-      border-radius: 8px;
-      background: var(--primary-dark);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      box-shadow: 0 14px 34px rgba(22, 27, 20, 0.26);
-      display: grid;
-      place-items: center;
-      cursor: nwse-resize;
-      user-select: none;
-      touch-action: none;
-      font-size: 20px;
-      line-height: 1;
-    }
-
-    .page-resize-handle:active {
-      transform: translateY(1px);
     }
 
     @media (max-width: 840px) {
@@ -704,6 +709,7 @@
               <button class="btn primary" type="submit" id="saveTemplateBtn">添加到每日模板</button>
             </form>
             <div class="history-list" id="templateList"></div>
+            <button class="template-list-resize" id="templateListResizeHandle" type="button" aria-label="拖动调整每日模板列表高度" title="上下拖动调整每日模板列表高度"></button>
           </section>
 
           <section id="historyPanel" hidden>
@@ -759,11 +765,10 @@
   </dialog>
 
   <div class="toast" id="toast"></div>
-  <button class="page-resize-handle" id="pageResizeHandle" type="button" aria-label="向左上拖动放大页面" title="向左上拖动放大页面">⤢</button>
 
   <script>
     const STORAGE_KEY = "daily-checkin-v1";
-    const SCALE_STORAGE_KEY = "daily-checkin-page-scale";
+    const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const defaultTemplates = [
       { id: uid(), name: "晨间整理", category: "生活", repeat: "daily", note: "规划今天最重要的三件事" },
       { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "" },
@@ -802,6 +807,7 @@
       templateNote: document.querySelector("#templateNote"),
       saveTemplateBtn: document.querySelector("#saveTemplateBtn"),
       templateList: document.querySelector("#templateList"),
+      templateListResizeHandle: document.querySelector("#templateListResizeHandle"),
       prevMonthBtn: document.querySelector("#prevMonthBtn"),
       nextMonthBtn: document.querySelector("#nextMonthBtn"),
       monthTitle: document.querySelector("#monthTitle"),
@@ -817,8 +823,7 @@
       taskCategory: document.querySelector("#taskCategory"),
       taskNote: document.querySelector("#taskNote"),
       cancelDialogBtn: document.querySelector("#cancelDialogBtn"),
-      toast: document.querySelector("#toast"),
-      pageResizeHandle: document.querySelector("#pageResizeHandle")
+      toast: document.querySelector("#toast")
     };
 
     init();
@@ -828,7 +833,7 @@
       ensureDay(selectedDate);
       bindEvents();
       updateTemplateWeekdayVisibility();
-      applyStoredPageScale();
+      applyStoredTemplateListHeight();
       renderAll();
     }
 
@@ -851,7 +856,7 @@
       els.addDailyTaskBtn.addEventListener("click", () => openTaskDialog("day"));
       els.cancelDialogBtn.addEventListener("click", () => els.taskDialog.close());
       els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
-      els.pageResizeHandle.addEventListener("pointerdown", startPageResize);
+      els.templateListResizeHandle.addEventListener("pointerdown", startTemplateListResize);
       els.exportDataBtn.addEventListener("click", exportData);
       els.importDataBtn.addEventListener("click", () => {
         els.importFileInput.value = "";
@@ -1302,39 +1307,37 @@
       els.templateWeekdayField.hidden = els.templateRepeat.value !== "weekly";
     }
 
-    function applyStoredPageScale() {
-      const savedScale = Number(localStorage.getItem(SCALE_STORAGE_KEY)) || 1;
-      setPageScale(savedScale);
+    function applyStoredTemplateListHeight() {
+      const savedHeight = Number(localStorage.getItem(TEMPLATE_LIST_HEIGHT_KEY)) || 260;
+      setTemplateListHeight(savedHeight);
     }
 
-    function startPageResize(event) {
+    function startTemplateListResize(event) {
       event.preventDefault();
-      const startX = event.clientX;
       const startY = event.clientY;
-      const startScale = Number(getComputedStyle(document.documentElement).getPropertyValue("--page-scale")) || 1;
+      const startHeight = els.templateList.getBoundingClientRect().height;
 
-      els.pageResizeHandle.setPointerCapture(event.pointerId);
+      els.templateListResizeHandle.setPointerCapture(event.pointerId);
 
       const handleMove = (moveEvent) => {
-        const delta = ((startX - moveEvent.clientX) + (startY - moveEvent.clientY)) / 520;
-        setPageScale(startScale + delta);
+        setTemplateListHeight(startHeight + moveEvent.clientY - startY);
       };
 
       const handleEnd = () => {
-        localStorage.setItem(SCALE_STORAGE_KEY, getComputedStyle(document.documentElement).getPropertyValue("--page-scale").trim());
-        els.pageResizeHandle.removeEventListener("pointermove", handleMove);
-        els.pageResizeHandle.removeEventListener("pointerup", handleEnd);
-        els.pageResizeHandle.removeEventListener("pointercancel", handleEnd);
+        localStorage.setItem(TEMPLATE_LIST_HEIGHT_KEY, String(Math.round(els.templateList.getBoundingClientRect().height)));
+        els.templateListResizeHandle.removeEventListener("pointermove", handleMove);
+        els.templateListResizeHandle.removeEventListener("pointerup", handleEnd);
+        els.templateListResizeHandle.removeEventListener("pointercancel", handleEnd);
       };
 
-      els.pageResizeHandle.addEventListener("pointermove", handleMove);
-      els.pageResizeHandle.addEventListener("pointerup", handleEnd);
-      els.pageResizeHandle.addEventListener("pointercancel", handleEnd);
+      els.templateListResizeHandle.addEventListener("pointermove", handleMove);
+      els.templateListResizeHandle.addEventListener("pointerup", handleEnd);
+      els.templateListResizeHandle.addEventListener("pointercancel", handleEnd);
     }
 
-    function setPageScale(scale) {
-      const nextScale = Math.min(1.35, Math.max(0.85, scale));
-      document.documentElement.style.setProperty("--page-scale", nextScale.toFixed(2));
+    function setTemplateListHeight(height) {
+      const nextHeight = Math.min(window.innerHeight * 0.65, Math.max(120, height));
+      document.documentElement.style.setProperty("--template-list-height", `${Math.round(nextHeight)}px`);
     }
 
     function formatDate(date) {
