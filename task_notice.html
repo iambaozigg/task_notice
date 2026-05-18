@@ -335,7 +335,7 @@
 
     .tabs {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 5px;
       background: #edf1e9;
       border: 1px solid var(--line);
@@ -606,8 +606,8 @@
       <div class="brand">
         <div class="mark">✓</div>
         <div>
-          <h1>日程打卡</h1>
-          <p class="subtitle">固定任务、每日执行、历史回看都在这里。</p>
+          <h1 id="appTitle">日程打卡</h1>
+          <p class="subtitle" id="appMotto">固定任务、每日执行、历史回看都在这里。</p>
         </div>
       </div>
       <label class="today-picker">
@@ -664,6 +664,7 @@
           <div class="tabs" role="tablist">
             <button class="tab active" id="templateTab" type="button">每日模板</button>
             <button class="tab" id="historyTab" type="button">历史回看</button>
+            <button class="tab" id="settingsTab" type="button">个性设置</button>
           </div>
 
           <section id="templatePanel">
@@ -722,6 +723,20 @@
             <div class="history-grid" id="historyGrid"></div>
             <div class="history-list" id="historyList"></div>
           </section>
+
+          <section id="settingsPanel" hidden>
+            <form class="form" id="settingsForm">
+              <label class="field">
+                <span>名称</span>
+                <input id="ownerName" maxlength="20" placeholder="例如：丁力">
+              </label>
+              <label class="field">
+                <span>座右铭</span>
+                <textarea id="mottoInput" maxlength="80" placeholder="例如：今天也要稳稳向前。"></textarea>
+              </label>
+              <button class="btn primary" type="submit">保存个性设置</button>
+            </form>
+          </section>
         </div>
       </aside>
     </section>
@@ -774,6 +789,10 @@
       { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "" },
       { id: uid(), name: "复盘记录", category: "学习", repeat: "workday", note: "写下一个收获或问题" }
     ];
+    const defaultSettings = {
+      ownerName: "",
+      motto: "固定任务、每日执行、历史回看都在这里。"
+    };
 
     const state = loadState();
     let selectedDate = formatDate(new Date());
@@ -781,6 +800,8 @@
     let editingTemplateId = null;
 
     const els = {
+      appTitle: document.querySelector("#appTitle"),
+      appMotto: document.querySelector("#appMotto"),
       dateInput: document.querySelector("#dateInput"),
       currentDateTitle: document.querySelector("#currentDateTitle"),
       currentDateSub: document.querySelector("#currentDateSub"),
@@ -793,11 +814,16 @@
       addDailyTaskBtn: document.querySelector("#addDailyTaskBtn"),
       templateTab: document.querySelector("#templateTab"),
       historyTab: document.querySelector("#historyTab"),
+      settingsTab: document.querySelector("#settingsTab"),
       exportDataBtn: document.querySelector("#exportDataBtn"),
       importDataBtn: document.querySelector("#importDataBtn"),
       importFileInput: document.querySelector("#importFileInput"),
       templatePanel: document.querySelector("#templatePanel"),
       historyPanel: document.querySelector("#historyPanel"),
+      settingsPanel: document.querySelector("#settingsPanel"),
+      settingsForm: document.querySelector("#settingsForm"),
+      ownerName: document.querySelector("#ownerName"),
+      mottoInput: document.querySelector("#mottoInput"),
       templateForm: document.querySelector("#templateForm"),
       templateName: document.querySelector("#templateName"),
       templateCategory: document.querySelector("#templateCategory"),
@@ -834,6 +860,7 @@
       bindEvents();
       updateTemplateWeekdayVisibility();
       applyStoredTemplateListHeight();
+      renderSettings();
       renderAll();
     }
 
@@ -866,6 +893,18 @@
 
       els.templateTab.addEventListener("click", () => setTab("template"));
       els.historyTab.addEventListener("click", () => setTab("history"));
+      els.settingsTab.addEventListener("click", () => setTab("settings"));
+
+      els.settingsForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        state.settings = {
+          ownerName: els.ownerName.value.trim(),
+          motto: els.mottoInput.value.trim() || defaultSettings.motto
+        };
+        saveState();
+        renderSettings();
+        toast("个性设置已保存");
+      });
 
       els.templateForm.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -935,21 +974,27 @@
 
     function setTab(tab) {
       const isHistory = tab === "history";
+      const isSettings = tab === "settings";
       els.historyPanel.hidden = !isHistory;
-      els.templatePanel.hidden = isHistory;
+      els.settingsPanel.hidden = !isSettings;
+      els.templatePanel.hidden = isHistory || isSettings;
       els.historyTab.classList.toggle("active", isHistory);
-      els.templateTab.classList.toggle("active", !isHistory);
+      els.settingsTab.classList.toggle("active", isSettings);
+      els.templateTab.classList.toggle("active", !isHistory && !isSettings);
       if (isHistory) renderHistory();
     }
 
     function loadState() {
       try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        if (saved && Array.isArray(saved.templates) && saved.days) return saved;
+        if (saved && Array.isArray(saved.templates) && saved.days) {
+          saved.settings = { ...defaultSettings, ...(saved.settings || {}) };
+          return saved;
+        }
       } catch (error) {
         console.warn("Load failed", error);
       }
-      return { templates: defaultTemplates, days: {} };
+      return { templates: defaultTemplates, days: {}, settings: { ...defaultSettings } };
     }
 
     function saveState() {
@@ -1018,7 +1063,8 @@
           weekday: template.repeat === "weekly" ? Number(template.weekday ?? 1) : null,
           note: template.note || ""
         })),
-        days: candidate.days
+        days: candidate.days,
+        settings: { ...defaultSettings, ...(candidate.settings || {}) }
       };
     }
 
@@ -1057,9 +1103,23 @@
     }
 
     function renderAll() {
+      renderSettings();
       renderToday();
       renderTemplates();
       renderHistory();
+    }
+
+    function renderSettings() {
+      state.settings = { ...defaultSettings, ...(state.settings || {}) };
+      const ownerName = state.settings.ownerName.trim();
+      const motto = state.settings.motto.trim() || defaultSettings.motto;
+      const title = ownerName ? `${ownerName}的日程打卡` : "日程打卡";
+
+      document.title = title;
+      els.appTitle.textContent = title;
+      els.appMotto.textContent = motto;
+      els.ownerName.value = ownerName;
+      els.mottoInput.value = motto;
     }
 
     function renderToday() {
