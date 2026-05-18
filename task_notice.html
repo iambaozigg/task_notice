@@ -6,6 +6,7 @@
   <title>日程打卡</title>
   <style>
     :root {
+      --page-scale: 1;
       --bg: #f6f7f2;
       --panel: #ffffff;
       --text: #20251f;
@@ -52,6 +53,7 @@
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
       padding: 28px 0 42px;
+      zoom: var(--page-scale);
     }
 
     .topbar {
@@ -247,11 +249,14 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
+      transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, opacity 0.18s ease;
     }
 
     .task.done {
-      background: var(--done);
-      border-color: #b7dcc1;
+      background: #dde4da;
+      border-color: #98a891;
+      color: #4e594d;
+      box-shadow: inset 4px 0 0 #2d6a4f;
     }
 
     .check {
@@ -267,7 +272,9 @@
     }
 
     .task.done .check {
-      background: var(--primary);
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+      box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.14);
     }
 
     .task-main {
@@ -280,6 +287,13 @@
       overflow-wrap: anywhere;
     }
 
+    .task.done .task-name {
+      color: #3f4a3e;
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+      text-decoration-color: rgba(63, 74, 62, 0.65);
+    }
+
     .task-meta {
       margin-top: 4px;
       color: var(--muted);
@@ -287,6 +301,11 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .task.done .task-meta {
+      color: #6f796c;
+      opacity: 0.78;
     }
 
     .tag {
@@ -511,6 +530,31 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    .page-resize-handle {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 9;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--primary-dark);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow: 0 14px 34px rgba(22, 27, 20, 0.26);
+      display: grid;
+      place-items: center;
+      cursor: nwse-resize;
+      user-select: none;
+      touch-action: none;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .page-resize-handle:active {
+      transform: translateY(1px);
+    }
+
     @media (max-width: 840px) {
       .topbar,
       .layout {
@@ -715,9 +759,11 @@
   </dialog>
 
   <div class="toast" id="toast"></div>
+  <button class="page-resize-handle" id="pageResizeHandle" type="button" aria-label="向左上拖动放大页面" title="向左上拖动放大页面">⤢</button>
 
   <script>
     const STORAGE_KEY = "daily-checkin-v1";
+    const SCALE_STORAGE_KEY = "daily-checkin-page-scale";
     const defaultTemplates = [
       { id: uid(), name: "晨间整理", category: "生活", repeat: "daily", note: "规划今天最重要的三件事" },
       { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "" },
@@ -771,7 +817,8 @@
       taskCategory: document.querySelector("#taskCategory"),
       taskNote: document.querySelector("#taskNote"),
       cancelDialogBtn: document.querySelector("#cancelDialogBtn"),
-      toast: document.querySelector("#toast")
+      toast: document.querySelector("#toast"),
+      pageResizeHandle: document.querySelector("#pageResizeHandle")
     };
 
     init();
@@ -781,6 +828,7 @@
       ensureDay(selectedDate);
       bindEvents();
       updateTemplateWeekdayVisibility();
+      applyStoredPageScale();
       renderAll();
     }
 
@@ -803,6 +851,7 @@
       els.addDailyTaskBtn.addEventListener("click", () => openTaskDialog("day"));
       els.cancelDialogBtn.addEventListener("click", () => els.taskDialog.close());
       els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
+      els.pageResizeHandle.addEventListener("pointerdown", startPageResize);
       els.exportDataBtn.addEventListener("click", exportData);
       els.importDataBtn.addEventListener("click", () => {
         els.importFileInput.value = "";
@@ -1251,6 +1300,41 @@
 
     function updateTemplateWeekdayVisibility() {
       els.templateWeekdayField.hidden = els.templateRepeat.value !== "weekly";
+    }
+
+    function applyStoredPageScale() {
+      const savedScale = Number(localStorage.getItem(SCALE_STORAGE_KEY)) || 1;
+      setPageScale(savedScale);
+    }
+
+    function startPageResize(event) {
+      event.preventDefault();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startScale = Number(getComputedStyle(document.documentElement).getPropertyValue("--page-scale")) || 1;
+
+      els.pageResizeHandle.setPointerCapture(event.pointerId);
+
+      const handleMove = (moveEvent) => {
+        const delta = ((startX - moveEvent.clientX) + (startY - moveEvent.clientY)) / 520;
+        setPageScale(startScale + delta);
+      };
+
+      const handleEnd = () => {
+        localStorage.setItem(SCALE_STORAGE_KEY, getComputedStyle(document.documentElement).getPropertyValue("--page-scale").trim());
+        els.pageResizeHandle.removeEventListener("pointermove", handleMove);
+        els.pageResizeHandle.removeEventListener("pointerup", handleEnd);
+        els.pageResizeHandle.removeEventListener("pointercancel", handleEnd);
+      };
+
+      els.pageResizeHandle.addEventListener("pointermove", handleMove);
+      els.pageResizeHandle.addEventListener("pointerup", handleEnd);
+      els.pageResizeHandle.addEventListener("pointercancel", handleEnd);
+    }
+
+    function setPageScale(scale) {
+      const nextScale = Math.min(1.35, Math.max(0.85, scale));
+      document.documentElement.style.setProperty("--page-scale", nextScale.toFixed(2));
     }
 
     function formatDate(date) {
