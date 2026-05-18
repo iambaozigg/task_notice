@@ -829,6 +829,10 @@
           <span>备注</span>
           <textarea id="taskNote" maxlength="120"></textarea>
         </label>
+        <label class="field">
+          <span>推迟到日期</span>
+          <input id="taskPostponeDate" type="date">
+        </label>
         <div class="dialog-actions">
           <button class="btn" type="button" id="cancelDialogBtn">取消</button>
           <button class="btn primary" type="submit">保存</button>
@@ -908,6 +912,7 @@
       taskName: document.querySelector("#taskName"),
       taskCategory: document.querySelector("#taskCategory"),
       taskNote: document.querySelector("#taskNote"),
+      taskPostponeDate: document.querySelector("#taskPostponeDate"),
       cancelDialogBtn: document.querySelector("#cancelDialogBtn"),
       toast: document.querySelector("#toast")
     };
@@ -1002,20 +1007,29 @@
 
         const scope = els.editingScope.value;
         const id = els.editingId.value;
+        const targetDate = els.taskPostponeDate.value;
         if (scope === "template") {
           const template = state.templates.find((item) => item.id === id);
           Object.assign(template, payload);
         } else if (scope === "day-new") {
-          ensureDay(selectedDate);
-          state.days[selectedDate].tasks.push({
+          const createDate = targetDate || selectedDate;
+          ensureDay(createDate);
+          state.days[createDate].tasks.push({
             id: uid(),
             done: false,
             createdFromTemplate: false,
             ...payload
           });
+          if (createDate !== selectedDate) {
+            toast(`任务已添加到 ${createDate}`);
+          }
         } else {
           const task = state.days[selectedDate].tasks.find((item) => item.id === id);
           Object.assign(task, payload);
+          if (targetDate && targetDate !== selectedDate) {
+            postponeTaskToDate(task, targetDate);
+            toast(`任务已推迟到 ${targetDate}`);
+          }
         }
         saveState();
         els.taskDialog.close();
@@ -1212,6 +1226,7 @@
             <div class="task-meta">
               <span class="tag">${escapeHtml(task.category)}</span>
               <span class="tag">${repeatLabel(task)}</span>
+              ${task.postponedFrom ? `<span class="tag">由 ${escapeHtml(task.postponedFrom)} 推迟</span>` : ""}
               ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
             </div>
           </div>
@@ -1341,6 +1356,19 @@
       renderAll();
     }
 
+    function postponeTaskToDate(task, targetDate) {
+      ensureDay(targetDate);
+      state.days[selectedDate].tasks = state.days[selectedDate].tasks.filter((item) => item.id !== task.id);
+      state.days[targetDate].tasks.push({
+        ...task,
+        id: uid(),
+        done: false,
+        postponedFrom: selectedDate,
+        postponedAt: new Date().toISOString()
+      });
+      visibleMonth = targetDate.slice(0, 7);
+    }
+
     function handleTemplateAction(action, id) {
       const task = state.templates.find((item) => item.id === id);
       if (!task) return;
@@ -1381,6 +1409,7 @@
       els.taskName.value = data.name;
       els.taskCategory.value = data.category;
       els.taskNote.value = data.note || "";
+      els.taskPostponeDate.value = selectedDate;
       els.taskDialog.showModal();
       els.taskName.focus();
     }
