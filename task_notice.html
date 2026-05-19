@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>日程打卡</title>
+  <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
   <style>
     :root {
       --bg: #f6f7f2;
@@ -844,6 +845,24 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    const IMAGE_DB_NAME = "daily-checkin-images";
+    const IMAGE_DB_VERSION = 1;
+    const IMAGE_STORE = "images";
+    const IMAGE_MAX_WIDTH = 1920;
+    const IMAGE_QUALITY = 0.8;
+
+    let imageDB = null;
+
+    async function initImageDB() {
+      imageDB = await idb.openDB(IMAGE_DB_NAME, IMAGE_DB_VERSION, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains(IMAGE_STORE)) {
+            db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
+          }
+        }
+      });
+    }
+
     const STORAGE_KEY = "daily-checkin-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const defaultTemplates = [
@@ -920,6 +939,7 @@
     init();
 
     function init() {
+      initImageDB().then(() => { if (typeof cleanupExpiredImages === 'function') cleanupExpiredImages(); });
       els.dateInput.value = selectedDate;
       ensureDay(selectedDate);
       bindEvents();
