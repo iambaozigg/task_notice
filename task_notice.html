@@ -1391,6 +1391,11 @@
       exportDataBtn: document.querySelector("#exportDataBtn"),
       importDataBtn: document.querySelector("#importDataBtn"),
       importFileInput: document.querySelector("#importFileInput"),
+      exportDialog: document.querySelector("#exportDialog"),
+      exportForm: document.querySelector("#exportForm"),
+      exportStartDate: document.querySelector("#exportStartDate"),
+      exportEndDate: document.querySelector("#exportEndDate"),
+      cancelExportBtn: document.querySelector("#cancelExportBtn"),
       templatePanel: document.querySelector("#templatePanel"),
       historyPanel: document.querySelector("#historyPanel"),
       settingsPanel: document.querySelector("#settingsPanel"),
@@ -1473,7 +1478,13 @@
       els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
       bindImageUpload("templateImageUpload", "templateImageInput", "templateImagePreview", "templateImages");
       els.templateListResizeHandle.addEventListener("pointerdown", startTemplateListResize);
-      els.exportDataBtn.addEventListener("click", exportData);
+      els.exportDataBtn.addEventListener("click", openExportDialog);
+      els.cancelExportBtn.addEventListener("click", () => els.exportDialog.close());
+      els.exportForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        els.exportDialog.close();
+        exportData();
+      });
       els.importDataBtn.addEventListener("click", () => {
         els.importFileInput.value = "";
         els.importFileInput.click();
@@ -1636,6 +1647,12 @@
 
     function saveState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function openExportDialog() {
+      els.exportStartDate.value = "";
+      els.exportEndDate.value = "";
+      els.exportDialog.showModal();
     }
 
     function exportData() {
