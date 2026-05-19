@@ -1227,6 +1227,9 @@
     }
 
     async function openViewer(imageIds, startIndex = 0) {
+      if (els.viewerImage.src && els.viewerImage.src.startsWith("blob:")) {
+        URL.revokeObjectURL(els.viewerImage.src);
+      }
       viewerImages = imageIds;
       viewerIndex = startIndex;
       await showViewerImage();
@@ -1238,6 +1241,8 @@
       const record = await getImageFromDB(id);
       if (record) {
         els.viewerImage.src = URL.createObjectURL(record.blob);
+      } else {
+        els.viewerImage.src = "";
       }
       els.viewerCounter.textContent = `${viewerIndex + 1} / ${viewerImages.length}`;
       els.viewerPrev.style.display = viewerImages.length > 1 ? "block" : "none";
