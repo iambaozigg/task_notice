@@ -1176,6 +1176,39 @@
       });
     }
 
+    function renderTaskImages(imageIds, containerClass) {
+      if (!imageIds || !imageIds.length) return "";
+      const thumbsHtml = imageIds.map((id) => `
+        <img class="task-thumb" data-img-id="${id}" alt="任务图片" loading="lazy">
+      `).join("");
+      return `<div class="${containerClass}">${thumbsHtml}</div>`;
+    }
+
+    async function loadTaskThumbnails() {
+      document.querySelectorAll(".task-thumb[data-img-id]").forEach(async (img) => {
+        if (img.src) return;
+        const id = img.dataset.imgId;
+        try {
+          const record = await getImageFromDB(id);
+          if (record) img.src = URL.createObjectURL(record.blob);
+        } catch (err) {
+          console.warn("Failed to load thumbnail:", err);
+        }
+      });
+
+      document.querySelectorAll(".task-images").forEach((container) => {
+        if (container.dataset.bound) return;
+        container.dataset.bound = "true";
+        container.addEventListener("click", (e) => {
+          const thumb = e.target.closest(".task-thumb");
+          if (!thumb) return;
+          const allIds = [...container.querySelectorAll(".task-thumb")].map((t) => t.dataset.imgId);
+          const index = allIds.indexOf(thumb.dataset.imgId);
+          if (typeof openViewer === "function") openViewer(allIds, index);
+        });
+      });
+    }
+
     const STORAGE_KEY = "daily-checkin-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const defaultTemplates = [
@@ -1592,6 +1625,7 @@
               ${task.postponedFrom ? `<span class="tag">由 ${escapeHtml(task.postponedFrom)} 推迟</span>` : ""}
               ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
             </div>
+            ${renderTaskImages(task.images, "task-images")}
           </div>
           <div class="task-actions">
             <button class="icon-btn" type="button" data-action="edit" data-id="${task.id}" aria-label="编辑">✎</button>
@@ -1603,6 +1637,8 @@
       els.taskList.querySelectorAll("button[data-action]").forEach((button) => {
         button.addEventListener("click", () => handleDayAction(button.dataset.action, button.dataset.id));
       });
+
+      loadTaskThumbnails();
     }
 
     function renderTemplates() {
@@ -1620,6 +1656,7 @@
               <span class="tag">${repeatLabel(task)}</span>
               ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
             </div>
+            ${renderTaskImages(task.images, "task-images")}
           </div>
           <div class="task-actions">
             <button class="icon-btn" type="button" data-action="edit-template" data-id="${task.id}" aria-label="编辑模板">✎</button>
@@ -1631,6 +1668,8 @@
       els.templateList.querySelectorAll("button[data-action]").forEach((button) => {
         button.addEventListener("click", () => handleTemplateAction(button.dataset.action, button.dataset.id));
       });
+
+      loadTaskThumbnails();
     }
 
     function renderHistory() {
