@@ -1093,93 +1093,24 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     let imageDB = null;
 
-    // IndexedDB fallback: localStorage-based image storage for file:// protocol
-    const imageStoreFallback = {
-      _prefix: "img_",
-      _cache: {},
-      _readAll() {
-        if (Object.keys(this._cache).length) return this._cache;
-        try {
-          const raw = localStorage.getItem("__image_store__");
-          if (raw) this._cache = JSON.parse(raw);
-        } catch (_) {}
-        return this._cache;
-      },
-      _write() {
-        try { localStorage.setItem("__image_store__", JSON.stringify(this._cache)); } catch (_) {}
-      },
-      async put(store, record) {
-        const data = this._readAll();
-        data[record.id] = {
-          ...record,
-          blob: undefined,
-          base64: record.blob ? await blobToBase64(record.blob) : record.base64,
-          type: record.type || "image/jpeg"
-        };
-        this._cache = data;
-        this._write();
-      },
-      async get(store, id) {
-        const data = this._readAll();
-        const rec = data[id];
-        if (!rec) return undefined;
-        return { ...rec, blob: rec.base64 ? base64ToBlob(rec.base64, rec.type) : null };
-      },
-      async delete(store, id) {
-        const data = this._readAll();
-        delete data[id];
-        this._cache = data;
-        this._write();
-      },
-      async getAllKeys(store) {
-        return Object.keys(this._readAll());
-      },
-      close() {}
-    };
-
-    function blobToBase64(blob) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
-
-    function base64ToBlob(base64, type) {
-      try {
-        const raw = atob(base64.split(",")[1] || base64);
-        const arr = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-        return new Blob([arr], { type: type || "image/jpeg" });
-      } catch (_) {
-        return null;
-      }
-    }
-
     let imageDBPromise = null;
     function initImageDB() {
       if (imageDB) return Promise.resolve(imageDB);
       if (imageDBPromise) return imageDBPromise;
-      imageDBPromise = Promise.race([
-        idb.openDB(IMAGE_DB_NAME, IMAGE_DB_VERSION, {
-          upgrade(db) {
-            if (!db.objectStoreNames.contains(IMAGE_STORE)) {
-              db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
-            }
+      imageDBPromise = idb.openDB(IMAGE_DB_NAME, IMAGE_DB_VERSION, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains(IMAGE_STORE)) {
+            db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
           }
-        }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("IndexedDB timeout")), 3000)
-        )
-      ]).then((db) => {
+        }
+      }).then((db) => {
         imageDB = db;
-        console.log("[imageDB] IndexedDB initialized");
+        console.log("[imageDB] initialized successfully");
         return db;
       }).catch((err) => {
-        console.warn("[imageDB] IndexedDB unavailable, using localStorage fallback:", err.message);
-        imageDB = imageStoreFallback;
-        return imageDB;
+        console.error("[imageDB] init failed:", err);
+        imageDBPromise = null;
+        throw err;
       });
       return imageDBPromise;
     }
@@ -1823,13 +1754,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
       try {
         localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem("__image_store__");
         if (imageDB) {
           imageDB.close();
           imageDB = null;
         }
         imageDBPromise = null;
-        imageStoreFallback._cache = {};
         await new Promise((resolve, reject) => {
           const req = indexedDB.deleteDatabase(IMAGE_DB_NAME);
           req.onsuccess = () => resolve();
