@@ -1839,6 +1839,7 @@
     }
 
     async function importZipData(file) {
+      if (!imageDB) await initImageDB();
       const zip = await JSZip.loadAsync(file);
 
       // 读取 data.json
