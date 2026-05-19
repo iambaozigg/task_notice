@@ -71,9 +71,9 @@ git cherry-pick <commit-hash>
 
 ## 使用方式
 
-直接用浏览器打开 `task_notice.html` 即可，无需安装任何依赖。
+直接用浏览器打开 `task_notice.html` 即可，无需安装任何依赖，无需网络连接。
 
-dev 版会从 CDN 加载 [idb](https://github.com/jakearchibald/idb) 库（约 1.2KB），需要网络连接。首次加载后浏览器会缓存。
+dev 版内嵌了 [idb](https://github.com/jakearchibald/idb)（~4KB）和 [JSZip](https://github.com/Stuk/jszip)（~98KB）库，所有功能离线可用。
 
 ## 数据存储位置
 
