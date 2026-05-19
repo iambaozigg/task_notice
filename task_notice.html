@@ -1184,13 +1184,22 @@
       return `<div class="${containerClass}">${thumbsHtml}</div>`;
     }
 
+    function revokeTaskThumbURLs() {
+      document.querySelectorAll(".task-thumb[data-img-id]").forEach((img) => {
+        if (img.src && img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+      });
+    }
+
     async function loadTaskThumbnails() {
       document.querySelectorAll(".task-thumb[data-img-id]").forEach(async (img) => {
-        if (img.src) return;
+        if (img.dataset.loaded) return;
         const id = img.dataset.imgId;
         try {
           const record = await getImageFromDB(id);
-          if (record) img.src = URL.createObjectURL(record.blob);
+          if (record) {
+            img.src = URL.createObjectURL(record.blob);
+            img.dataset.loaded = "true";
+          }
         } catch (err) {
           console.warn("Failed to load thumbnail:", err);
         }
@@ -1597,6 +1606,7 @@
     }
 
     function renderToday() {
+      revokeTaskThumbURLs();
       const day = state.days[selectedDate] || { tasks: [] };
       const total = day.tasks.length;
       const done = day.tasks.filter((task) => task.done).length;
@@ -1642,6 +1652,7 @@
     }
 
     function renderTemplates() {
+      revokeTaskThumbURLs();
       if (!state.templates.length) {
         els.templateList.innerHTML = `<div class="empty">还没有每日固定任务。</div>`;
         return;
