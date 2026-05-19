@@ -189,6 +189,12 @@
       align-items: center;
     }
 
+    .toolbar-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--line);
+    }
+
     .btn {
       min-height: 38px;
       padding: 8px 13px;
@@ -837,6 +843,7 @@
             <button class="btn" id="exportDataBtn" type="button">导出数据</button>
             <button class="btn" id="importDataBtn" type="button">导入数据</button>
             <input id="importFileInput" type="file" accept=".zip,.json" hidden>
+            <span class="toolbar-sep"></span>
             <button class="btn danger" id="clearDataBtn" type="button">清除所有数据</button>
           </div>
         </div>
