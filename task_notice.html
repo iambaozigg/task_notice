@@ -1013,6 +1013,14 @@
 
   <div class="toast" id="toast"></div>
 
+  <div class="fullscreen-viewer" id="fullscreenViewer">
+    <button class="viewer-close" id="viewerClose" type="button" aria-label="关闭">×</button>
+    <button class="viewer-nav viewer-prev" id="viewerPrev" type="button" aria-label="上一张">‹</button>
+    <img id="viewerImage" alt="图片查看">
+    <button class="viewer-nav viewer-next" id="viewerNext" type="button" aria-label="下一张">›</button>
+    <div class="viewer-counter" id="viewerCounter"></div>
+  </div>
+
   <script>
     const IMAGE_DB_NAME = "daily-checkin-images";
     const IMAGE_DB_VERSION = 1;
@@ -1218,6 +1226,34 @@
       });
     }
 
+    async function openViewer(imageIds, startIndex = 0) {
+      viewerImages = imageIds;
+      viewerIndex = startIndex;
+      await showViewerImage();
+      els.fullscreenViewer.classList.add("active");
+    }
+
+    async function showViewerImage() {
+      const id = viewerImages[viewerIndex];
+      const record = await getImageFromDB(id);
+      if (record) {
+        els.viewerImage.src = URL.createObjectURL(record.blob);
+      }
+      els.viewerCounter.textContent = `${viewerIndex + 1} / ${viewerImages.length}`;
+      els.viewerPrev.style.display = viewerImages.length > 1 ? "block" : "none";
+      els.viewerNext.style.display = viewerImages.length > 1 ? "block" : "none";
+    }
+
+    function closeViewer() {
+      if (els.viewerImage.src && els.viewerImage.src.startsWith("blob:")) {
+        URL.revokeObjectURL(els.viewerImage.src);
+      }
+      els.fullscreenViewer.classList.remove("active");
+      els.viewerImage.src = "";
+      viewerImages = [];
+      viewerIndex = 0;
+    }
+
     const STORAGE_KEY = "daily-checkin-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const defaultTemplates = [
@@ -1237,6 +1273,8 @@
     let editingTemplateId = null;
     let templateImages = [];
     let taskImages = [];
+    let viewerImages = [];
+    let viewerIndex = 0;
 
     const els = {
       appTitle: document.querySelector("#appTitle"),
@@ -1291,7 +1329,13 @@
       taskNote: document.querySelector("#taskNote"),
       taskPostponeDate: document.querySelector("#taskPostponeDate"),
       cancelDialogBtn: document.querySelector("#cancelDialogBtn"),
-      toast: document.querySelector("#toast")
+      toast: document.querySelector("#toast"),
+      fullscreenViewer: document.querySelector("#fullscreenViewer"),
+      viewerImage: document.querySelector("#viewerImage"),
+      viewerClose: document.querySelector("#viewerClose"),
+      viewerPrev: document.querySelector("#viewerPrev"),
+      viewerNext: document.querySelector("#viewerNext"),
+      viewerCounter: document.querySelector("#viewerCounter"),
     };
 
     init();
@@ -1431,6 +1475,31 @@
       els.nextMonthBtn.addEventListener("click", () => {
         visibleMonth = shiftMonth(visibleMonth, 1);
         renderHistory();
+      });
+
+      els.viewerClose.addEventListener("click", closeViewer);
+      els.viewerPrev.addEventListener("click", async () => {
+        if (els.viewerImage.src && els.viewerImage.src.startsWith("blob:")) {
+          URL.revokeObjectURL(els.viewerImage.src);
+        }
+        viewerIndex = (viewerIndex - 1 + viewerImages.length) % viewerImages.length;
+        await showViewerImage();
+      });
+      els.viewerNext.addEventListener("click", async () => {
+        if (els.viewerImage.src && els.viewerImage.src.startsWith("blob:")) {
+          URL.revokeObjectURL(els.viewerImage.src);
+        }
+        viewerIndex = (viewerIndex + 1) % viewerImages.length;
+        await showViewerImage();
+      });
+      els.fullscreenViewer.addEventListener("click", (e) => {
+        if (e.target === els.fullscreenViewer) closeViewer();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (!els.fullscreenViewer.classList.contains("active")) return;
+        if (e.key === "Escape") closeViewer();
+        if (e.key === "ArrowLeft") els.viewerPrev.click();
+        if (e.key === "ArrowRight") els.viewerNext.click();
       });
     }
 
