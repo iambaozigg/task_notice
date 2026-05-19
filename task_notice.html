@@ -1093,20 +1093,26 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     let imageDB = null;
 
-    async function initImageDB() {
-      try {
-        imageDB = await idb.openDB(IMAGE_DB_NAME, IMAGE_DB_VERSION, {
-          upgrade(db) {
-            if (!db.objectStoreNames.contains(IMAGE_STORE)) {
-              db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
-            }
+    let imageDBPromise = null;
+    function initImageDB() {
+      if (imageDB) return Promise.resolve(imageDB);
+      if (imageDBPromise) return imageDBPromise;
+      imageDBPromise = idb.openDB(IMAGE_DB_NAME, IMAGE_DB_VERSION, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains(IMAGE_STORE)) {
+            db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
           }
-        });
+        }
+      }).then((db) => {
+        imageDB = db;
         console.log("[imageDB] initialized successfully");
-      } catch (err) {
+        return db;
+      }).catch((err) => {
         console.error("[imageDB] init failed:", err);
+        imageDBPromise = null;
         throw err;
-      }
+      });
+      return imageDBPromise;
     }
 
     function compressImage(file) {
@@ -1752,6 +1758,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           imageDB.close();
           imageDB = null;
         }
+        imageDBPromise = null;
         await new Promise((resolve, reject) => {
           const req = indexedDB.deleteDatabase(IMAGE_DB_NAME);
           req.onsuccess = () => resolve();
@@ -1873,10 +1880,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       if (!imageDB) {
         toast("正在初始化图片数据库...");
         try {
-          await Promise.race([
-            initImageDB(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("图片数据库初始化超时")), 8000))
-          ]);
+          await initImageDB();
         } catch (dbErr) {
           console.error("[import-zip] imageDB init error:", dbErr);
           toast("图片数据库初始化失败：" + dbErr.message);
