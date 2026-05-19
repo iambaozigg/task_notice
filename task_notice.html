@@ -836,7 +836,7 @@
           <div class="toolbar">
             <button class="btn" id="exportDataBtn" type="button">导出数据</button>
             <button class="btn" id="importDataBtn" type="button">导入数据</button>
-            <input id="importFileInput" type="file" accept="application/json,.json" hidden>
+            <input id="importFileInput" type="file" accept=".zip,.json" hidden>
           </div>
         </div>
         <div class="panel-body">
@@ -1806,10 +1806,98 @@
       }
     }
 
-    function importData(event) {
+    async function importZipData(file) {
+      const zip = await JSZip.loadAsync(file);
+
+      // 读取 data.json
+      const dataFile = zip.file("data.json");
+      if (!dataFile) {
+        toast("导入失败：ZIP 中缺少 data.json");
+        return;
+      }
+      const jsonText = await dataFile.async("string");
+      const parsed = JSON.parse(jsonText);
+      const importedState = normalizeImportedState(parsed);
+      if (!importedState) {
+        toast("导入失败：文件格式不正确");
+        return;
+      }
+
+      if (!confirm("导入后会替换当前浏览器里的所有打卡数据，继续吗？")) return;
+
+      // 还原图片到 IndexedDB
+      const imgFolder = zip.folder("images");
+      if (imgFolder) {
+        const fileNames = [];
+        imgFolder.forEach((relativePath) => {
+          if (relativePath && !relativePath.endsWith("/")) {
+            fileNames.push(relativePath);
+          }
+        });
+        for (const fileName of fileNames) {
+          try {
+            // 从文件名提取图片 ID（第一个 _ 前的部分）
+            const id = fileName.split("_")[0];
+            if (!id) continue;
+            const fileData = imgFolder.file(fileName);
+            if (!fileData) continue;
+            const blob = await fileData.async("blob");
+            if (!blob) continue;
+            await imageDB.put(IMAGE_STORE, {
+              id,
+              blob,
+              type: blob.type || "image/jpeg",
+              width: 0,
+              height: 0,
+              originalName: fileName,
+              createdAt: Date.now()
+            });
+          } catch (err) {
+            console.warn("导入图片失败，已跳过:", fileName, err);
+          }
+        }
+      }
+
+      // 将 images 数组中的文件名转回纯 ID
+      const fileNameToId = (fileName) => {
+        const id = fileName.split("_")[0];
+        return id || fileName;
+      };
+
+      importedState.templates.forEach((t) => {
+        t.images = (t.images || []).map(fileNameToId);
+      });
+      Object.values(importedState.days).forEach((day) => {
+        (day.tasks || []).forEach((t) => {
+          t.images = (t.images || []).map(fileNameToId);
+        });
+      });
+
+      // 覆盖 state
+      state.templates = importedState.templates;
+      state.days = importedState.days;
+      saveState();
+      ensureDay(selectedDate);
+      renderAll();
+      toast("数据导入成功");
+    }
+
+    async function importData(event) {
       const file = event.target.files?.[0];
       if (!file) return;
 
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith(".zip")) {
+        try {
+          await importZipData(file);
+        } catch (error) {
+          console.error("ZIP import failed", error);
+          toast("导入失败：无法解析 ZIP 文件");
+        }
+        return;
+      }
+
+      // 旧格式 JSON 导入
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         try {
