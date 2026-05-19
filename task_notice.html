@@ -1739,6 +1739,7 @@
       }
 
       // 有图片，生成 ZIP
+      try {
       toast("正在打包导出...");
       const zip = new JSZip();
       const imageIdToName = buildImageIdToNameMap(filteredDays);
@@ -1799,6 +1800,10 @@
       link.remove();
       URL.revokeObjectURL(url);
       toast("数据已导出");
+      } catch (err) {
+        console.error("Export failed:", err);
+        toast("导出失败：" + (err.message || "未知错误"));
+      }
     }
 
     function importData(event) {
