@@ -1879,9 +1879,6 @@
       if (action === "edit") openTaskDialog("day", task);
 
       if (action === "delete" && confirm("删除这一天的任务？")) {
-        if (task.images) {
-          task.images.forEach((imgId) => deleteImageFromDB(imgId));
-        }
         state.days[selectedDate].tasks = tasks.filter((item) => item.id !== id);
         toast("当天任务已删除");
       }
@@ -1922,9 +1919,6 @@
       }
 
       if (action === "delete-template" && confirm("删除这个每日模板？历史记录不会被删除。")) {
-        if (task.images) {
-          task.images.forEach((imgId) => deleteImageFromDB(imgId));
-        }
         state.templates = state.templates.filter((item) => item.id !== id);
         if (editingTemplateId === id) {
           editingTemplateId = null;
