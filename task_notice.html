@@ -625,6 +625,157 @@
         grid-column: 2;
       }
     }
+
+    .image-upload-area {
+      border: 2px dashed var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-top: 6px;
+    }
+
+    .image-upload-area:hover,
+    .image-upload-area.dragover {
+      border-color: var(--primary);
+      background: var(--soft);
+    }
+
+    .image-upload-area input[type="file"] {
+      display: none;
+    }
+
+    .image-upload-area .upload-hint {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .image-upload-area .upload-icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+
+    .image-preview-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .image-preview-grid .thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid var(--line);
+    }
+
+    .image-preview-grid .thumb-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .image-preview-grid .thumb-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--danger);
+      color: white;
+      font-size: 12px;
+      line-height: 20px;
+      text-align: center;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+    }
+
+    .task-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .task-images .task-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid var(--line);
+    }
+
+    .fullscreen-viewer {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fullscreen-viewer.active {
+      display: flex;
+    }
+
+    .fullscreen-viewer img {
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+    }
+
+    .fullscreen-viewer .viewer-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 24px;
+      line-height: 40px;
+      text-align: center;
+      cursor: pointer;
+      border: none;
+    }
+
+    .fullscreen-viewer .viewer-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 24px;
+      line-height: 48px;
+      text-align: center;
+      cursor: pointer;
+      border: none;
+    }
+
+    .fullscreen-viewer .viewer-prev {
+      left: 16px;
+    }
+
+    .fullscreen-viewer .viewer-next {
+      right: 16px;
+    }
+
+    .fullscreen-viewer .viewer-counter {
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 12px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -734,6 +885,15 @@
               <label class="field">
                 <span>备注</span>
                 <textarea id="templateNote" maxlength="120" placeholder="可选，比如完成标准或提醒"></textarea>
+              </label>
+              <label class="field">
+                <span>参考图片</span>
+                <div class="image-upload-area" id="templateImageUpload">
+                  <div class="upload-icon">🖼️</div>
+                  <div class="upload-hint">点击选择图片，或拖拽图片到此处</div>
+                  <input type="file" id="templateImageInput" accept="image/*" multiple>
+                </div>
+                <div class="image-preview-grid" id="templateImagePreview"></div>
               </label>
               <button class="btn primary" type="submit" id="saveTemplateBtn">添加到每日模板</button>
             </form>
@@ -927,6 +1087,81 @@
       return imageDB.getAllKeys(IMAGE_STORE);
     }
 
+    function bindImageUpload(areaId, inputId, previewId, stateKey) {
+      const area = document.getElementById(areaId);
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+
+      area.addEventListener("click", (e) => {
+        if (e.target.closest(".thumb-remove")) return;
+        input.click();
+      });
+
+      area.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        area.classList.add("dragover");
+      });
+
+      area.addEventListener("dragleave", () => {
+        area.classList.remove("dragover");
+      });
+
+      area.addEventListener("drop", (e) => {
+        e.preventDefault();
+        area.classList.remove("dragover");
+        handleImageFiles(e.dataTransfer.files, stateKey, preview);
+      });
+
+      input.addEventListener("change", () => {
+        handleImageFiles(input.files, stateKey, preview);
+        input.value = "";
+      });
+    }
+
+    async function handleImageFiles(files, stateKey, previewEl) {
+      const target = stateKey === "templateImages" ? templateImages : taskImages;
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        try {
+          const id = await saveImageToDB(file);
+          target.push(id);
+        } catch (err) {
+          console.error("Image upload failed:", err);
+          toast("图片上传失败");
+        }
+      }
+      renderImagePreview(previewEl, target);
+    }
+
+    function renderImagePreview(container, imageIds) {
+      container.innerHTML = "";
+      imageIds.forEach((id, index) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "thumb-wrapper";
+
+        const img = document.createElement("img");
+        img.className = "thumb";
+        img.alt = "预览";
+        getImageFromDB(id).then((record) => {
+          if (record) img.src = URL.createObjectURL(record.blob);
+        });
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "thumb-remove";
+        removeBtn.type = "button";
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          imageIds.splice(index, 1);
+          renderImagePreview(container, imageIds);
+        });
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(removeBtn);
+        container.appendChild(wrapper);
+      });
+    }
+
     const STORAGE_KEY = "daily-checkin-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const defaultTemplates = [
@@ -944,6 +1179,8 @@
     let selectedDate = formatDate(new Date());
     let visibleMonth = selectedDate.slice(0, 7);
     let editingTemplateId = null;
+    let templateImages = [];
+    let taskImages = [];
 
     const els = {
       appTitle: document.querySelector("#appTitle"),
@@ -1035,6 +1272,7 @@
       els.addDailyTaskBtn.addEventListener("click", () => openTaskDialog("day"));
       els.cancelDialogBtn.addEventListener("click", () => els.taskDialog.close());
       els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
+      bindImageUpload("templateImageUpload", "templateImageInput", "templateImagePreview", "templateImages");
       els.templateListResizeHandle.addEventListener("pointerdown", startTemplateListResize);
       els.exportDataBtn.addEventListener("click", exportData);
       els.importDataBtn.addEventListener("click", () => {
@@ -1067,17 +1305,20 @@
         if (editingTemplateId) {
           const template = state.templates.find((item) => item.id === editingTemplateId);
           Object.assign(template, payload);
+          template.images = [...templateImages];
           editingTemplateId = null;
           els.saveTemplateBtn.textContent = "添加到每日模板";
           toast("模板已更新");
         } else {
-          const template = { id: uid(), ...payload };
+          const template = { id: uid(), ...payload, images: [...templateImages] };
           state.templates.push(template);
           syncTemplateToDay(template, selectedDate);
           toast("已添加到每日模板");
         }
 
+        templateImages = [];
         els.templateForm.reset();
+        document.getElementById("templateImagePreview").innerHTML = "";
         updateTemplateWeekdayVisibility();
         saveState();
         renderAll();
@@ -1486,6 +1727,8 @@
         els.templateWeekday.value = String(task.weekday ?? 1);
         updateTemplateWeekdayVisibility();
         els.templateNote.value = task.note || "";
+        templateImages = [...(task.images || [])];
+        renderImagePreview(document.getElementById("templateImagePreview"), templateImages);
         els.saveTemplateBtn.textContent = "保存模板修改";
         els.templateName.focus();
       }
@@ -1494,7 +1737,9 @@
         state.templates = state.templates.filter((item) => item.id !== id);
         if (editingTemplateId === id) {
           editingTemplateId = null;
+          templateImages = [];
           els.templateForm.reset();
+          document.getElementById("templateImagePreview").innerHTML = "";
           updateTemplateWeekdayVisibility();
           els.saveTemplateBtn.textContent = "添加到每日模板";
         }
