@@ -994,6 +994,15 @@
           <span>推迟到日期</span>
           <input id="taskPostponeDate" type="date">
         </label>
+        <label class="field">
+          <span>打卡图片</span>
+          <div class="image-upload-area" id="taskImageUpload">
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-hint">点击选择图片，或拖拽图片到此处</div>
+            <input type="file" id="taskImageInput" accept="image/*" multiple>
+          </div>
+          <div class="image-preview-grid" id="taskImagePreview"></div>
+        </label>
         <div class="dialog-actions">
           <button class="btn" type="button" id="cancelDialogBtn">取消</button>
           <button class="btn primary" type="submit">保存</button>
@@ -1276,6 +1285,7 @@
 
       els.addDailyTaskBtn.addEventListener("click", () => openTaskDialog("day"));
       els.cancelDialogBtn.addEventListener("click", () => els.taskDialog.close());
+      bindImageUpload("taskImageUpload", "taskImageInput", "taskImagePreview", "taskImages");
       els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
       bindImageUpload("templateImageUpload", "templateImageInput", "templateImagePreview", "templateImages");
       els.templateListResizeHandle.addEventListener("pointerdown", startTemplateListResize);
@@ -1334,7 +1344,8 @@
         const payload = {
           name: els.taskName.value.trim(),
           category: els.taskCategory.value,
-          note: els.taskNote.value.trim()
+          note: els.taskNote.value.trim(),
+          images: [...taskImages]
         };
         if (!payload.name) return;
 
@@ -1364,6 +1375,7 @@
             toast(`任务已推迟到 ${targetDate}`);
           }
         }
+        taskImages = [];
         saveState();
         els.taskDialog.close();
         renderAll();
@@ -1755,7 +1767,7 @@
     }
 
     function openTaskDialog(scope, task = null) {
-      const fallback = { id: uid(), name: "", category: "学习", note: "" };
+      const fallback = { id: uid(), name: "", category: "学习", note: "", images: [] };
       const data = task || fallback;
 
       els.dialogTitle.textContent = scope === "template" ? "编辑模板任务" : "编辑当天任务";
@@ -1765,6 +1777,8 @@
       els.taskCategory.value = data.category;
       els.taskNote.value = data.note || "";
       els.taskPostponeDate.value = selectedDate;
+      taskImages = [...(data.images || [])];
+      renderImagePreview(document.getElementById("taskImagePreview"), taskImages);
       els.taskDialog.showModal();
       els.taskName.focus();
     }
