@@ -1508,10 +1508,22 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         exportData();
       });
       els.importDataBtn.addEventListener("click", () => {
+        toast("正在打开文件选择器...");
         els.importFileInput.value = "";
         els.importFileInput.click();
       });
-      els.importFileInput.addEventListener("change", importData);
+      els.importFileInput.addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+          toast("未选择文件");
+          return;
+        }
+        toast("已选择文件：" + file.name);
+        importData(e).catch((err) => {
+          console.error("Import error:", err);
+          toast("导入出错：" + (err.message || "未知错误"));
+        });
+      });
       els.clearDataBtn.addEventListener("click", clearAllData);
 
       els.templateTab.addEventListener("click", () => setTab("template"));
