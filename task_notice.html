@@ -1092,7 +1092,7 @@
           saved.settings = { ...defaultSettings, ...(saved.settings || {}) };
           saved.templates.forEach((t) => { if (!t.images) t.images = []; });
           Object.values(saved.days).forEach((day) => {
-            day.tasks.forEach((t) => { if (!t.images) t.images = []; });
+            (day.tasks || []).forEach((t) => { if (!t.images) t.images = []; });
           });
           return saved;
         }
@@ -1169,7 +1169,18 @@
           note: template.note || "",
           images: Array.isArray(template.images) ? template.images : []
         })),
-        days: candidate.days,
+        days: Object.fromEntries(
+          Object.entries(candidate.days).map(([date, day]) => [
+            date,
+            {
+              ...day,
+              tasks: (day.tasks || []).map((t) => ({
+                ...t,
+                images: Array.isArray(t.images) ? t.images : []
+              }))
+            }
+          ])
+        ),
         settings: { ...defaultSettings, ...(candidate.settings || {}) }
       };
     }
@@ -1205,7 +1216,8 @@
         id: uid(),
         templateId: template.id,
         done: false,
-        createdFromTemplate: true
+        createdFromTemplate: true,
+        images: Array.isArray(template.images) ? template.images : []
       });
     }
 
@@ -1449,7 +1461,8 @@
         category: els.templateCategory.value,
         repeat: els.templateRepeat.value,
         weekday: els.templateRepeat.value === "weekly" ? Number(els.templateWeekday.value) : null,
-        note: els.templateNote.value.trim()
+        note: els.templateNote.value.trim(),
+        images: []
       };
     }
 
