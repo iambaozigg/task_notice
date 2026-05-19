@@ -354,7 +354,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     .tabs {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 5px;
       background: #edf1e9;
       border: 1px solid var(--line);
@@ -850,19 +850,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             <h2 class="panel-title">配置与历史</h2>
             <p class="subtitle">管理模板，查看过去表现。</p>
           </div>
-          <div class="toolbar">
-            <button class="btn" id="exportDataBtn" type="button">导出数据</button>
-            <button class="btn" id="importDataBtn" type="button">导入数据</button>
-            <input id="importFileInput" type="file" accept=".zip,.json" hidden>
-            <span class="toolbar-sep"></span>
-            <button class="btn danger" id="clearDataBtn" type="button">清除所有数据</button>
-          </div>
         </div>
         <div class="panel-body">
           <div class="tabs" role="tablist">
             <button class="tab active" id="templateTab" type="button">每日模板</button>
             <button class="tab" id="historyTab" type="button">历史回看</button>
             <button class="tab" id="settingsTab" type="button">个性设置</button>
+            <button class="tab" id="dataTab" type="button">数据管理</button>
             <button class="tab" id="guideTab" type="button">使用说明</button>
           </div>
 
@@ -951,43 +945,79 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             </form>
           </section>
 
-          <section id="guidePanel" hidden>
+          <section id="dataPanel" hidden>
             <div class="guide">
               <div class="guide-section">
-                <h3>第一次使用</h3>
+                <h3>数据导出</h3>
+                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">支持导出为 ZIP 包（含图片）或纯 JSON 文件。可选择时间范围筛选，图片会自动打包到 ZIP 中。</p>
+                <div class="toolbar" style="margin-top: 10px;">
+                  <button class="btn" id="exportDataBtn" type="button">导出数据</button>
+                </div>
+              </div>
+              <div class="guide-section">
+                <h3>数据导入</h3>
+                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">支持导入 ZIP 包（自动还原图片）或旧格式 JSON 文件。导入会替换当前所有数据。</p>
+                <div class="toolbar" style="margin-top: 10px;">
+                  <button class="btn" id="importDataBtn" type="button">导入数据</button>
+                  <input id="importFileInput" type="file" accept=".zip,.json" hidden>
+                </div>
+              </div>
+              <div class="guide-section">
+                <h3>清除数据</h3>
+                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">永久删除所有任务模板、打卡记录和图片，此操作不可恢复。</p>
+                <div class="toolbar" style="margin-top: 10px;">
+                  <button class="btn danger" id="clearDataBtn" type="button">清除所有数据</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id=”guidePanel” hidden>
+            <div class=”guide”>
+              <div class=”guide-section”>
+                <h3>快速开始</h3>
                 <ol>
-                  <li>在“个性设置”里填写名称和座右铭，让页面变成自己的日程打卡。</li>
-                  <li>在“每日模板”里添加固定任务，选择分类和重复规则。</li>
+                  <li>在「个性设置」里填写名称和座右铭，让页面变成自己的日程打卡。</li>
+                  <li>在「每日模板」里添加固定任务，选择分类和重复规则。</li>
                   <li>回到左侧当天任务列表，点击方框即可完成打卡。</li>
                 </ol>
               </div>
-              <div class="guide-section">
-                <h3>模板与当天任务</h3>
+              <div class=”guide-section”>
+                <h3>模板与任务</h3>
                 <ul>
-                  <li>每日重复会每天生成任务。</li>
-                  <li>工作日重复只会在周一到周五生成任务。</li>
-                  <li>每周重复可以指定某个星期几生成任务。</li>
+                  <li><strong>每日重复</strong>：每天自动生成任务。</li>
+                  <li><strong>工作日重复</strong>：仅周一到周五生成任务。</li>
+                  <li><strong>每周重复</strong>：可指定某个星期几生成任务。</li>
                   <li>新增模板后，如果符合当天规则，会立即出现在今天任务里。</li>
-                </ul>
-              </div>
-              <div class="guide-section">
-                <h3>历史与数据</h3>
-                <ul>
-                  <li>通过顶部日期可以查看任意一天的任务。</li>
-                  <li>“历史回看”会按月显示完成率。</li>
-                  <li>“导出数据”会下载 JSON 备份文件。</li>
-                  <li>换设备后打开页面，点击”导入数据”选择备份文件即可恢复。</li>
                 </ul>
               </div>
               <div class=”guide-section”>
                 <h3>图片功能</h3>
                 <ul>
-                  <li>在模板或每日任务中可以上传参考图片或打卡照片。</li>
-                  <li>支持点击选择、拖拽上传、粘贴上传三种方式。</li>
-                  <li>图片会自动压缩以节省存储空间。</li>
-                  <li>点击缩略图可以全屏查看大图，支持左右切换。</li>
-                  <li>在「个性设置」中可以设置图片保留天数，默认 6 个月。</li>
+                  <li>在模板中可上传参考图片，在每日任务中可上传打卡照片。</li>
+                  <li>支持<strong>点击选择</strong>、<strong>拖拽上传</strong>、<strong>粘贴上传</strong>三种方式。</li>
+                  <li>图片会自动压缩（最大 1920px，JPEG 质量 0.8）以节省存储空间。</li>
+                  <li>点击缩略图可全屏查看大图，支持左右箭头键切换。</li>
+                  <li>在「个性设置」中可设置图片保留天数，默认 180 天（约 6 个月）。</li>
                   <li>超过保留时间的图片会在打开页面时自动清除。</li>
+                </ul>
+              </div>
+              <div class=”guide-section”>
+                <h3>历史回看</h3>
+                <ul>
+                  <li>通过顶部日期可查看任意一天的任务完成情况。</li>
+                  <li>「历史回看」标签按月显示日历，颜色深浅表示完成率。</li>
+                  <li>点击日历中的某一天可跳转到该日详情。</li>
+                </ul>
+              </div>
+              <div class=”guide-section”>
+                <h3>数据备份与恢复</h3>
+                <ul>
+                  <li>在「数据管理」标签中可导出和导入数据。</li>
+                  <li><strong>导出</strong>：有图片时生成 ZIP 包（含 data.json 和 images 文件夹），无图片时生成 JSON 文件。支持按时间范围筛选。</li>
+                  <li><strong>导入</strong>：支持 ZIP 包（自动还原图片到浏览器）和旧格式 JSON 文件。导入会替换当前所有数据。</li>
+                  <li><strong>清除</strong>：永久删除所有数据，需二次确认，不可恢复。</li>
+                  <li>建议定期备份数据，尤其是有重要图片记录时。</li>
                 </ul>
               </div>
             </div>
@@ -1472,6 +1502,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       templateTab: document.querySelector("#templateTab"),
       historyTab: document.querySelector("#historyTab"),
       settingsTab: document.querySelector("#settingsTab"),
+      dataTab: document.querySelector("#dataTab"),
       guideTab: document.querySelector("#guideTab"),
       exportDataBtn: document.querySelector("#exportDataBtn"),
       importDataBtn: document.querySelector("#importDataBtn"),
@@ -1485,6 +1516,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       templatePanel: document.querySelector("#templatePanel"),
       historyPanel: document.querySelector("#historyPanel"),
       settingsPanel: document.querySelector("#settingsPanel"),
+      dataPanel: document.querySelector("#dataPanel"),
       guidePanel: document.querySelector("#guidePanel"),
       settingsForm: document.querySelector("#settingsForm"),
       ownerName: document.querySelector("#ownerName"),
@@ -1593,6 +1625,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       els.templateTab.addEventListener("click", () => setTab("template"));
       els.historyTab.addEventListener("click", () => setTab("history"));
       els.settingsTab.addEventListener("click", () => setTab("settings"));
+      els.dataTab.addEventListener("click", () => setTab("data"));
       els.guideTab.addEventListener("click", () => setTab("guide"));
 
       els.settingsForm.addEventListener("submit", (event) => {
@@ -1715,15 +1748,19 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     function setTab(tab) {
       const isHistory = tab === "history";
       const isSettings = tab === "settings";
+      const isData = tab === "data";
       const isGuide = tab === "guide";
+      const isOther = isHistory || isSettings || isData || isGuide;
       els.historyPanel.hidden = !isHistory;
       els.settingsPanel.hidden = !isSettings;
+      els.dataPanel.hidden = !isData;
       els.guidePanel.hidden = !isGuide;
-      els.templatePanel.hidden = isHistory || isSettings || isGuide;
+      els.templatePanel.hidden = isOther;
       els.historyTab.classList.toggle("active", isHistory);
       els.settingsTab.classList.toggle("active", isSettings);
+      els.dataTab.classList.toggle("active", isData);
       els.guideTab.classList.toggle("active", isGuide);
-      els.templateTab.classList.toggle("active", !isHistory && !isSettings && !isGuide);
+      els.templateTab.classList.toggle("active", !isOther);
       if (isHistory) renderHistory();
     }
 
