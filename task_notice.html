@@ -1134,6 +1134,9 @@
     }
 
     function renderImagePreview(container, imageIds) {
+      container.querySelectorAll("img.thumb").forEach((img) => {
+        if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+      });
       container.innerHTML = "";
       imageIds.forEach((id, index) => {
         const wrapper = document.createElement("div");
@@ -1150,10 +1153,12 @@
         removeBtn.className = "thumb-remove";
         removeBtn.type = "button";
         removeBtn.textContent = "×";
-        removeBtn.addEventListener("click", (e) => {
+        removeBtn.addEventListener("click", async (e) => {
           e.stopPropagation();
+          const removedId = imageIds[index];
           imageIds.splice(index, 1);
           renderImagePreview(container, imageIds);
+          await deleteImageFromDB(removedId);
         });
 
         wrapper.appendChild(img);
