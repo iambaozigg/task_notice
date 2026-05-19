@@ -1864,7 +1864,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     async function importZipData(file) {
-      if (!imageDB) await initImageDB();
+      if (!imageDB) {
+        toast("正在初始化图片数据库...");
+        await initImageDB();
+      }
+      toast("正在解压 ZIP 文件...");
       const zip = await JSZip.loadAsync(file);
 
       // 读取 data.json
@@ -1873,6 +1877,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         toast("导入失败：ZIP 中缺少 data.json");
         return;
       }
+      toast("正在读取数据...");
       const jsonText = await dataFile.async("string");
       const parsed = JSON.parse(jsonText);
       const importedState = normalizeImportedState(parsed);
@@ -1947,6 +1952,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const fileName = file.name.toLowerCase();
       if (fileName.endsWith(".zip")) {
         try {
+          toast("正在解析 ZIP 文件...");
           await importZipData(file);
         } catch (error) {
           console.error("ZIP import failed", error);
@@ -1956,6 +1962,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
 
       // 旧格式 JSON 导入
+      toast("正在读取 JSON 文件...");
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         try {
@@ -1975,8 +1982,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           toast("数据导入成功");
         } catch (error) {
           console.error("Import failed", error);
-          toast("导入失败：无法读取 JSON");
+          toast("导入失败：" + (error.message || "无法读取 JSON"));
         }
+      });
+      reader.addEventListener("error", () => {
+        toast("导入失败：无法读取文件");
       });
       reader.readAsText(file, "utf-8");
     }
