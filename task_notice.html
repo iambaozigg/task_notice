@@ -922,6 +922,11 @@
                 <span>座右铭</span>
                 <textarea id="mottoInput" maxlength="80" placeholder="例如：今天也要稳稳向前。"></textarea>
               </label>
+              <label class="field">
+                <span>图片保留天数</span>
+                <input id="imageRetentionDays" type="number" min="1" max="3650" placeholder="180">
+                <small style="color: var(--muted); font-size: 12px;">超过此天数的图片将在下次打开时自动清除，默认 180 天（约 6 个月）</small>
+              </label>
               <button class="btn primary" type="submit">保存个性设置</button>
             </form>
           </section>
@@ -1102,6 +1107,42 @@
 
     async function getAllImageKeys() {
       return imageDB.getAllKeys(IMAGE_STORE);
+    }
+
+    async function cleanupExpiredImages() {
+      if (!imageDB) return;
+      try {
+        const retentionDays = state.settings.imageRetentionDays || 180;
+        const cutoff = Date.now() - retentionDays * 86400000;
+        const allRecords = await imageDB.getAll(IMAGE_STORE);
+        let cleaned = 0;
+
+        for (const record of allRecords) {
+          if (record.createdAt < cutoff) {
+            await deleteImageFromDB(record.id);
+            removeImageReference(record.id);
+            cleaned++;
+          }
+        }
+
+        if (cleaned > 0) {
+          saveState();
+          console.log(`Cleaned up ${cleaned} expired images`);
+        }
+      } catch (err) {
+        console.warn("Image cleanup failed:", err);
+      }
+    }
+
+    function removeImageReference(imageId) {
+      state.templates.forEach((t) => {
+        if (t.images) t.images = t.images.filter((id) => id !== imageId);
+      });
+      Object.values(state.days).forEach((day) => {
+        day.tasks.forEach((t) => {
+          if (t.images) t.images = t.images.filter((id) => id !== imageId);
+        });
+      });
     }
 
     function bindImageUpload(areaId, inputId, previewId, stateKey) {
@@ -1308,6 +1349,7 @@
       settingsForm: document.querySelector("#settingsForm"),
       ownerName: document.querySelector("#ownerName"),
       mottoInput: document.querySelector("#mottoInput"),
+      imageRetentionDays: document.querySelector("#imageRetentionDays"),
       templateForm: document.querySelector("#templateForm"),
       templateName: document.querySelector("#templateName"),
       templateCategory: document.querySelector("#templateCategory"),
@@ -1396,7 +1438,8 @@
         event.preventDefault();
         state.settings = {
           ownerName: els.ownerName.value.trim(),
-          motto: els.mottoInput.value.trim() || defaultSettings.motto
+          motto: els.mottoInput.value.trim() || defaultSettings.motto,
+          imageRetentionDays: Math.max(1, Number(els.imageRetentionDays.value) || 180)
         };
         saveState();
         renderSettings();
@@ -1677,6 +1720,7 @@
       els.appMotto.textContent = motto;
       els.ownerName.value = ownerName;
       els.mottoInput.value = motto;
+      els.imageRetentionDays.value = state.settings.imageRetentionDays || 180;
     }
 
     function renderToday() {
