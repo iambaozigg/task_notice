@@ -1655,18 +1655,145 @@
       els.exportDialog.showModal();
     }
 
-    function exportData() {
-      const payload = {
-        app: "daily-checkin",
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        data: state
+    function sanitizeFileName(name) {
+      return name.replace(/[\\/:*?"<>|]/g, "_");
+    }
+
+    function buildImageFileName(imageId, taskName, date) {
+      const safeName = sanitizeFileName(taskName || "未命名");
+      if (date) {
+        return `${imageId}_${safeName}_${date}.jpg`;
+      }
+      return `${imageId}_${safeName}.jpg`;
+    }
+
+    function collectExportImageIds(filteredDays) {
+      const ids = new Set();
+      // 模板图片始终包含
+      state.templates.forEach((t) => {
+        (t.images || []).forEach((id) => ids.add(id));
+      });
+      // 每日任务图片：只包含筛选后的 days
+      Object.values(filteredDays).forEach((day) => {
+        (day.tasks || []).forEach((t) => {
+          (t.images || []).forEach((id) => ids.add(id));
+        });
+      });
+      return ids;
+    }
+
+    function buildImageIdToNameMap(filteredDays) {
+      const map = new Map();
+      // 模板图片
+      state.templates.forEach((t) => {
+        (t.images || []).forEach((id) => {
+          if (!map.has(id)) map.set(id, buildImageFileName(id, t.name, null));
+        });
+      });
+      // 每日任务图片
+      Object.entries(filteredDays).forEach(([date, day]) => {
+        (day.tasks || []).forEach((t) => {
+          (t.images || []).forEach((id) => {
+            if (!map.has(id)) map.set(id, buildImageFileName(id, t.name, date));
+          });
+        });
+      });
+      return map;
+    }
+
+    async function exportData() {
+      const startDate = els.exportStartDate.value;
+      const endDate = els.exportEndDate.value;
+
+      // 按时间范围筛选 days
+      const filteredDays = {};
+      Object.entries(state.days).forEach(([date, day]) => {
+        if (startDate && date < startDate) return;
+        if (endDate && date > endDate) return;
+        filteredDays[date] = day;
+      });
+
+      // 检查是否有图片
+      const imageIds = collectExportImageIds(filteredDays);
+      const hasImages = imageIds.size > 0;
+
+      if (!hasImages) {
+        // 无图片，走现有 JSON 导出逻辑
+        const payload = {
+          app: "daily-checkin",
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          data: state
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `日程打卡数据-${formatDate(new Date())}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        toast("数据已导出");
+        return;
+      }
+
+      // 有图片，生成 ZIP
+      toast("正在打包导出...");
+      const zip = new JSZip();
+      const imageIdToName = buildImageIdToNameMap(filteredDays);
+
+      // 构建 state 副本，将 images 中的 ID 替换为文件名
+      const exportState = {
+        templates: state.templates.map((t) => ({
+          ...t,
+          images: (t.images || []).map((id) => imageIdToName.get(id) || id)
+        })),
+        days: Object.fromEntries(
+          Object.entries(filteredDays).map(([date, day]) => [
+            date,
+            {
+              ...day,
+              tasks: (day.tasks || []).map((t) => ({
+                ...t,
+                images: (t.images || []).map((id) => imageIdToName.get(id) || id)
+              }))
+            }
+          ])
+        ),
+        settings: state.settings
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+
+      const dataJson = {
+        app: "daily-checkin",
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        hasImages: true,
+        data: exportState
+      };
+
+      zip.file("data.json", JSON.stringify(dataJson, null, 2));
+
+      // 逐个从 IndexedDB 读取图片添加到 ZIP
+      const imgFolder = zip.folder("images");
+      for (const id of imageIds) {
+        try {
+          const record = await getImageFromDB(id);
+          if (record) {
+            const fileName = imageIdToName.get(id) || `${id}.jpg`;
+            imgFolder.file(fileName, record.blob);
+          }
+        } catch (err) {
+          console.warn("导出图片失败，已跳过:", id, err);
+        }
+      }
+
+      // 生成 ZIP 并下载
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `日程打卡数据-${formatDate(new Date())}.json`;
+      link.download = `日程打卡数据-${formatDate(new Date())}.zip`;
       document.body.appendChild(link);
       link.click();
       link.remove();
