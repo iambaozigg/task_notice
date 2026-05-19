@@ -1153,7 +1153,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       imageDBPromise = Promise.race([
         openImageDBNative(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("IndexedDB 打开超时（3秒）")), 3000)
+          setTimeout(() => reject(new Error("IndexedDB 打开超时（5秒）")), 5000)
         )
       ]).then((db) => {
         imageDB = wrapIDB(db);
