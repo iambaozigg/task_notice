@@ -939,7 +939,9 @@
     init();
 
     function init() {
-      initImageDB().then(() => { if (typeof cleanupExpiredImages === 'function') cleanupExpiredImages(); });
+      initImageDB()
+        .then(() => { if (typeof cleanupExpiredImages === 'function') cleanupExpiredImages(); })
+        .catch((err) => console.warn("Image DB init failed:", err));
       els.dateInput.value = selectedDate;
       ensureDay(selectedDate);
       bindEvents();
