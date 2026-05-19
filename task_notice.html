@@ -1439,7 +1439,7 @@
         state.settings = {
           ownerName: els.ownerName.value.trim(),
           motto: els.mottoInput.value.trim() || defaultSettings.motto,
-          imageRetentionDays: Math.max(1, Number(els.imageRetentionDays.value) || 180)
+          imageRetentionDays: Math.min(3650, Math.max(1, Number(els.imageRetentionDays.value) || 180))
         };
         saveState();
         renderSettings();
