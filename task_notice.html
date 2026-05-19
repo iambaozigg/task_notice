@@ -1476,9 +1476,24 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     init();
 
     function init() {
+      // 检测 file:// 协议，提示用户使用 HTTP 服务器
+      if (location.protocol === "file:") {
+        console.warn("[app] 当前使用 file:// 协议打开，图片存储功能（IndexedDB）在部分浏览器中可能不可用。");
+        console.warn("[app] 建议使用本地 HTTP 服务器打开此文件，例如：");
+        console.warn("[app]   - VS Code Live Server 插件");
+        console.warn("[app]   - 命令行：python -m http.server 8080");
+        console.warn("[app]   - 命令行：npx serve");
+      }
       initImageDB()
-        .then(() => { if (typeof cleanupExpiredImages === 'function') cleanupExpiredImages(); })
-        .catch((err) => console.warn("Image DB init failed:", err));
+        .then(() => {
+          if (typeof cleanupExpiredImages === 'function') cleanupExpiredImages();
+        })
+        .catch((err) => {
+          console.warn("Image DB init failed:", err);
+          if (location.protocol === "file:") {
+            toast("图片数据库初始化失败：请使用 HTTP 服务器打开此页面（见控制台说明）");
+          }
+        });
       document.addEventListener("dragover", (e) => e.preventDefault());
       document.addEventListener("drop", (e) => e.preventDefault());
       els.dateInput.value = selectedDate;
@@ -1883,7 +1898,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           await initImageDB();
         } catch (dbErr) {
           console.error("[import-zip] imageDB init error:", dbErr);
-          toast("图片数据库初始化失败：" + dbErr.message);
+          if (location.protocol === "file:") {
+            toast("导入失败：file:// 协议下图片数据库不可用，请用 HTTP 服务器打开页面");
+          } else {
+            toast("图片数据库初始化失败：" + dbErr.message);
+          }
           return;
         }
       }
