@@ -866,13 +866,14 @@
     const STORAGE_KEY = "daily-checkin-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const defaultTemplates = [
-      { id: uid(), name: "晨间整理", category: "生活", repeat: "daily", note: "规划今天最重要的三件事" },
-      { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "" },
-      { id: uid(), name: "复盘记录", category: "学习", repeat: "workday", note: "写下一个收获或问题" }
+      { id: uid(), name: "晨间整理", category: "生活", repeat: "daily", note: "规划今天最重要的三件事", images: [] },
+      { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "", images: [] },
+      { id: uid(), name: "复盘记录", category: "学习", repeat: "workday", note: "写下一个收获或问题", images: [] }
     ];
     const defaultSettings = {
       ownerName: "",
-      motto: "固定任务、每日执行、历史回看都在这里。"
+      motto: "固定任务、每日执行、历史回看都在这里。",
+      imageRetentionDays: 180
     };
 
     const state = loadState();
@@ -1089,6 +1090,10 @@
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
         if (saved && Array.isArray(saved.templates) && saved.days) {
           saved.settings = { ...defaultSettings, ...(saved.settings || {}) };
+          saved.templates.forEach((t) => { if (!t.images) t.images = []; });
+          Object.values(saved.days).forEach((day) => {
+            day.tasks.forEach((t) => { if (!t.images) t.images = []; });
+          });
           return saved;
         }
       } catch (error) {
@@ -1161,7 +1166,8 @@
           category: template.category || "其他",
           repeat: template.repeat || "daily",
           weekday: template.repeat === "weekly" ? Number(template.weekday ?? 1) : null,
-          note: template.note || ""
+          note: template.note || "",
+          images: Array.isArray(template.images) ? template.images : []
         })),
         days: candidate.days,
         settings: { ...defaultSettings, ...(candidate.settings || {}) }
@@ -1179,7 +1185,8 @@
             id: uid(),
             templateId: task.id,
             done: false,
-            createdFromTemplate: true
+            createdFromTemplate: true,
+            images: []
           }))
       };
       saveState();
