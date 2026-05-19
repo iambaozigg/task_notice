@@ -978,6 +978,31 @@
     </section>
   </main>
 
+  <dialog id="exportDialog">
+    <form method="dialog">
+      <div class="dialog-head">
+        <h3>导出数据</h3>
+        <button class="icon-btn" value="cancel" type="submit" aria-label="关闭">×</button>
+      </div>
+    </form>
+    <div class="dialog-body">
+      <form class="form" id="exportForm">
+        <label class="field">
+          <span>起始日期（留空表示不限）</span>
+          <input id="exportStartDate" type="date">
+        </label>
+        <label class="field">
+          <span>结束日期（留空表示不限）</span>
+          <input id="exportEndDate" type="date">
+        </label>
+        <div class="dialog-actions">
+          <button class="btn" type="button" id="cancelExportBtn">取消</button>
+          <button class="btn primary" type="submit">导出</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <dialog id="taskDialog">
     <form method="dialog">
       <div class="dialog-head">
