@@ -1094,13 +1094,19 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     let imageDB = null;
 
     async function initImageDB() {
-      imageDB = await idb.openDB(IMAGE_DB_NAME, IMAGE_DB_VERSION, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains(IMAGE_STORE)) {
-            db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
+      try {
+        imageDB = await idb.openDB(IMAGE_DB_NAME, IMAGE_DB_VERSION, {
+          upgrade(db) {
+            if (!db.objectStoreNames.contains(IMAGE_STORE)) {
+              db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
+            }
           }
-        }
-      });
+        });
+        console.log("[imageDB] initialized successfully");
+      } catch (err) {
+        console.error("[imageDB] init failed:", err);
+        throw err;
+      }
     }
 
     function compressImage(file) {
@@ -1866,7 +1872,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     async function importZipData(file) {
       if (!imageDB) {
         toast("正在初始化图片数据库...");
-        await initImageDB();
+        try {
+          await Promise.race([
+            initImageDB(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("图片数据库初始化超时")), 8000))
+          ]);
+        } catch (dbErr) {
+          console.error("[import-zip] imageDB init error:", dbErr);
+          toast("图片数据库初始化失败：" + dbErr.message);
+          return;
+        }
+      }
+      if (!imageDB) {
+        toast("导入失败：图片数据库不可用");
+        return;
       }
       toast("正在解压 ZIP 文件...");
       const zip = await JSZip.loadAsync(file);
