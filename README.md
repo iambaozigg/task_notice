@@ -74,3 +74,27 @@ git cherry-pick <commit-hash>
 直接用浏览器打开 `task_notice.html` 即可，无需安装任何依赖。
 
 dev 版会从 CDN 加载 [idb](https://github.com/jakearchibald/idb) 库（约 1.2KB），需要网络连接。首次加载后浏览器会缓存。
+
+## 数据存储位置
+
+所有数据都存在浏览器本地，不会上传到任何服务器。
+
+| 数据类型 | 存储方式 | 位置 |
+|----------|----------|------|
+| 任务、模板、设置 | localStorage | 浏览器本地，按域名隔离 |
+| 图片二进制数据（仅 dev 版） | IndexedDB | 浏览器本地，按域名隔离 |
+
+各浏览器的 IndexedDB 存储路径（Windows）：
+
+| 浏览器 | 路径 |
+|--------|------|
+| Chrome | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\` |
+| Edge | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\IndexedDB\` |
+| Firefox | `%APPDATA%\Mozilla\Firefox\Profiles\<profile>\storage\default\` |
+
+**注意事项：**
+
+- localStorage 和 IndexedDB 都是浏览器本地存储，不经过网络
+- 数据按浏览器隔离：Chrome 里存的数据在 Firefox 里看不到
+- 清除浏览器数据时如果勾选了「站点数据」，localStorage 和 IndexedDB 都会被删除
+- `file://` 协议打开的 HTML 文件，数据绑定在当前浏览器的本地配置中
