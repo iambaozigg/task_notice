@@ -1518,8 +1518,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           toast("未选择文件");
           return;
         }
-        toast("已选择文件：" + file.name);
-        importData(e).catch((err) => {
+        toast("已选择文件：" + file.name + "，开始导入...");
+        importData(file).catch((err) => {
           console.error("Import error:", err);
           toast("导入出错：" + (err.message || "未知错误"));
         });
@@ -1945,8 +1945,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       toast("数据导入成功");
     }
 
-    async function importData(event) {
-      const file = event.target.files?.[0];
+    async function importData(file) {
       if (!file) return;
 
       const fileName = file.name.toLowerCase();
