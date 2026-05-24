@@ -619,6 +619,77 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       transform: translateX(-50%) translateY(0);
     }
 
+    @media (min-width: 1024px) {
+      .app {
+        width: min(1400px, calc(100% - 80px));
+        padding: 36px 0 52px;
+      }
+      .layout {
+        grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+        gap: 24px;
+      }
+      .panel-header,
+      .panel-body {
+        padding: 22px;
+      }
+      .stat {
+        padding: 16px;
+      }
+      .stat strong {
+        font-size: 28px;
+      }
+      .task {
+        padding: 14px 16px;
+        gap: 14px;
+      }
+      .history-grid {
+        gap: 8px;
+      }
+      .day-cell {
+        font-size: 14px;
+      }
+      .day-cell .rate {
+        font-size: 11px;
+      }
+      .weekday {
+        font-size: 13px;
+      }
+      .tabs {
+        gap: 6px;
+        padding: 6px;
+      }
+      .tab {
+        font-size: 16px;
+      }
+      .field span {
+        font-size: 14px;
+      }
+      dialog {
+        width: min(560px, calc(100% - 40px));
+      }
+      .dialog-body {
+        padding: 22px;
+      }
+      .thumb {
+        width: 80px;
+        height: 80px;
+      }
+      .task-thumb {
+        width: 56px;
+        height: 56px;
+      }
+      .guide-section h3 {
+        font-size: 17px;
+      }
+      .guide-section ol,
+      .guide-section ul {
+        font-size: 15px;
+      }
+      .history-item {
+        padding: 12px;
+      }
+    }
+
     @media (max-width: 840px) {
       .topbar,
       .layout {
