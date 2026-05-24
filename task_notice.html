@@ -261,6 +261,25 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       min-height: 18px;
     }
 
+    .settings-group {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 8px 0;
+      user-select: none;
+    }
+
+    .settings-group:hover {
+      color: var(--primary-dark);
+    }
+
+    details + details {
+      border-top: 1px solid var(--line);
+      margin-top: 8px;
+      padding-top: 4px;
+    }
+
     .icon-btn {
       width: 36px;
       height: 36px;
@@ -1030,47 +1049,75 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
           <section id="settingsPanel" hidden>
             <form class="form" id="settingsForm">
-              <label class="field">
-                <span>名称</span>
-                <input id="ownerName" maxlength="20" placeholder="例如：丁力">
-              </label>
-              <label class="field">
-                <span>座右铭</span>
-                <textarea id="mottoInput" maxlength="80" placeholder="例如：今天也要稳稳向前。"></textarea>
-              </label>
-              <label class="field">
-                <span>图片保留天数</span>
-                <input id="imageRetentionDays" type="number" min="1" max="3650" placeholder="180">
-                <small style="color: var(--muted); font-size: 12px;">超过此天数的图片将在下次打开时自动清除，默认 180 天（约 6 个月）</small>
-              </label>
-              <label class="field">
-                <span>图片压缩质量</span>
-                <select id="imageQuality">
-                  <option value="0.6">低质量（省空间）</option>
-                  <option value="0.8" selected>中等质量（推荐）</option>
-                  <option value="0.95">高质量（大文件）</option>
-                </select>
-                <small style="color: var(--muted); font-size: 12px;">质量越低文件越小，推荐 0.8</small>
-              </label>
-              <label class="field">
-                <span>图片最大分辨率（px）</span>
-                <input id="imageMaxWidth" type="number" min="480" max="4096" step="160" placeholder="1920">
-                <small style="color: var(--muted); font-size: 12px;">超过此宽度的图片将被等比缩放，默认 1920px</small>
-              </label>
-              <label class="field">
-                <span>AI 接口地址</span>
-                <input id="aiEndpoint" type="url" placeholder="https://api.deepseek.com/v1/chat/completions">
-                <small style="color: var(--muted); font-size: 12px;">OpenAI 兼容格式的接口地址</small>
-              </label>
-              <label class="field">
-                <span>API Key</span>
-                <input id="aiApiKey" type="password" placeholder="sk-...">
-                <small style="color: var(--muted); font-size: 12px;">密钥仅存储在浏览器本地，不会上传到任何服务器</small>
-              </label>
-              <label class="field">
-                <span>模型名称</span>
-                <input id="aiModel" type="text" placeholder="deepseek-chat">
-              </label>
+              <details open>
+                <summary class="settings-group">个人信息</summary>
+                <label class="field">
+                  <span>名称</span>
+                  <input id="ownerName" maxlength="20" placeholder="例如：丁力">
+                </label>
+                <label class="field">
+                  <span>座右铭</span>
+                  <textarea id="mottoInput" maxlength="80" placeholder="例如：今天也要稳稳向前。"></textarea>
+                </label>
+              </details>
+              <details>
+                <summary class="settings-group">图片设置</summary>
+                <label class="field">
+                  <span>图片保留天数</span>
+                  <input id="imageRetentionDays" type="number" min="1" max="3650" placeholder="180">
+                  <small style="color: var(--muted); font-size: 12px;">超过此天数的图片将在下次打开时自动清除，默认 180 天（约 6 个月）</small>
+                </label>
+                <label class="field">
+                  <span>图片压缩质量</span>
+                  <select id="imageQuality">
+                    <option value="0.6">低质量（省空间）</option>
+                    <option value="0.8" selected>中等质量（推荐）</option>
+                    <option value="0.95">高质量（大文件）</option>
+                  </select>
+                  <small style="color: var(--muted); font-size: 12px;">质量越低文件越小，推荐 0.8</small>
+                </label>
+                <label class="field">
+                  <span>图片最大分辨率（px）</span>
+                  <input id="imageMaxWidth" type="number" min="480" max="4096" step="160" placeholder="1920">
+                  <small style="color: var(--muted); font-size: 12px;">超过此宽度的图片将被等比缩放，默认 1920px</small>
+                </label>
+              </details>
+              <details>
+                <summary class="settings-group">AI 配置</summary>
+                <label class="field">
+                  <span>AI 接口地址</span>
+                  <input id="aiEndpoint" type="url" placeholder="https://api.deepseek.com/v1/chat/completions">
+                  <small style="color: var(--muted); font-size: 12px;">OpenAI 兼容格式的接口地址</small>
+                </label>
+                <label class="field">
+                  <span>API Key</span>
+                  <input id="aiApiKey" type="password" placeholder="sk-...">
+                  <small style="color: var(--muted); font-size: 12px;">密钥仅存储在浏览器本地，不会上传到任何服务器</small>
+                </label>
+                <label class="field">
+                  <span>模型名称</span>
+                  <input id="aiModel" type="text" placeholder="deepseek-chat">
+                </label>
+                <label class="field">
+                  <span>AI 分析风格</span>
+                  <select id="aiStyle">
+                    <option value="friendly">友好鼓励（默认）</option>
+                    <option value="strict">严格督促</option>
+                    <option value="concise">简洁高效</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                </label>
+                <label class="field" id="customPromptField" style="display:none">
+                  <span>自定义分析 Prompt</span>
+                  <textarea id="aiCustomPrompt" maxlength="500" rows="4" placeholder="你是一个生活效率分析助手。根据用户的打卡数据，给出分析报告..."></textarea>
+                  <small style="color: var(--muted); font-size: 12px;">仅在选择「自定义」风格时生效，系统会自动附加打卡数据</small>
+                </label>
+                <label class="field" id="customQuotePromptField" style="display:none">
+                  <span>自定义激励语 Prompt</span>
+                  <textarea id="aiCustomQuotePrompt" maxlength="300" rows="2" placeholder="你是一个激励助手。生成一句简短的个性化激励语..."></textarea>
+                  <small style="color: var(--muted); font-size: 12px;">仅在选择「自定义」风格时生效</small>
+                </label>
+              </details>
               <button class="btn primary" type="submit">保存个性设置</button>
             </form>
           </section>
@@ -1246,6 +1293,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <div class="dialog-actions">
         <button class="btn" type="button" id="closeAnalysisBtn">关闭</button>
         <button class="btn primary" type="button" id="generateAnalysisBtn">生成分析报告</button>
+        <button class="btn" type="button" id="generateWeeklyBtn">生成本周周报</button>
       </div>
     </div>
   </dialog>
@@ -1630,6 +1678,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       aiEndpoint: "",
       aiApiKey: "",
       aiModel: "",
+      aiStyle: "friendly",
+      aiCustomPrompt: "",
+      aiCustomQuotePrompt: "",
       lastQuoteDate: "",
       cachedQuote: ""
     };
@@ -1689,6 +1740,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       analysisContent: document.querySelector("#analysisContent"),
       closeAnalysisBtn: document.querySelector("#closeAnalysisBtn"),
       generateAnalysisBtn: document.querySelector("#generateAnalysisBtn"),
+      aiStyle: document.querySelector("#aiStyle"),
+      customPromptField: document.querySelector("#customPromptField"),
+      customQuotePromptField: document.querySelector("#customQuotePromptField"),
+      aiCustomPrompt: document.querySelector("#aiCustomPrompt"),
+      aiCustomQuotePrompt: document.querySelector("#aiCustomQuotePrompt"),
+      generateWeeklyBtn: document.querySelector("#generateWeeklyBtn"),
       aiQuote: document.querySelector("#aiQuote"),
       templateCameraBtn: document.querySelector("#templateCameraBtn"),
       templateCameraInput: document.querySelector("#templateCameraInput"),
@@ -1819,19 +1876,96 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       return `任务模板列表：\n${templateList || "（无）"}\n\n近 7 天打卡详情：\n${recentData || "（无数据）"}\n\n近 30 天任务完成率：\n总完成率: ${overallRate}%（${totalDone}/${totalTasks}）\n各任务详情：\n${taskBreakdown || "（无数据）"}`;
     }
 
+    function getAnalysisPrompt() {
+      const style = state.settings.aiStyle || "friendly";
+      if (style === "custom" && state.settings.aiCustomPrompt) {
+        return state.settings.aiCustomPrompt;
+      }
+      const prompts = {
+        friendly: "你是一个生活效率分析助手。根据用户的打卡数据，给出简洁、有洞察力的分析报告。分析完成率趋势、找出薄弱环节、给出可执行的改进建议。用中文回答，语气友好鼓励。",
+        strict: "你是一个严格的效率教练。根据用户的打卡数据，直接指出问题和不足，不回避懈怠行为。给出明确的改进要求和时间节点。用中文，语气严肃但不失尊重。",
+        concise: "你是一个数据分析师。根据用户的打卡数据，用最精炼的语言给出关键数据摘要和 3 条核心建议。用中文，不废话，重点突出。"
+      };
+      return prompts[style] || prompts.friendly;
+    }
+
+    function getQuotePrompt() {
+      const style = state.settings.aiStyle || "friendly";
+      if (style === "custom" && state.settings.aiCustomQuotePrompt) {
+        return state.settings.aiCustomQuotePrompt;
+      }
+      const prompts = {
+        friendly: "你是一个激励助手。根据用户的任务清单，生成一句简短（20字以内）的个性化激励语。要求：积极向上、具体到用户的任务内容、不要泛泛而谈。只输出激励语本身，不要任何解释。",
+        strict: "你是一个严格的教练。根据用户的任务清单，生成一句简短（20字以内）的督促语。要求：直接、有力、有紧迫感。只输出督促语本身。",
+        concise: "根据用户的任务清单，生成一句 10 字以内的短句。只输出短句本身。"
+      };
+      return prompts[style] || prompts.friendly;
+    }
+
     async function generateAnalysis() {
       const content = els.analysisContent;
       content.textContent = "正在分析中，请稍候...";
       els.generateAnalysisBtn.disabled = true;
       try {
         const data = buildAnalysisData();
-        const systemPrompt = "你是一个生活效率分析助手。根据用户的打卡数据，给出简洁、有洞察力的分析报告。分析完成率趋势、找出薄弱环节、给出可执行的改进建议。用中文回答，语气友好鼓励。";
-        const result = await callAI(systemPrompt, data);
+        const result = await callAI(getAnalysisPrompt(), data);
         content.textContent = result;
       } catch (err) {
         content.textContent = "分析失败：" + err.message;
       } finally {
         els.generateAnalysisBtn.disabled = false;
+      }
+    }
+
+    function buildWeeklyData() {
+      const days = state.days || {};
+      const templates = state.templates || [];
+      const dates = Object.keys(days).sort();
+      const recent7 = dates.slice(-7);
+
+      const templateList = templates.map(t => `- ${t.name}（${t.category || "未分类"}，${t.repeat}）`).join("\n");
+
+      let totalTasks = 0, totalDone = 0;
+      const taskStats = {};
+      const dailyBreakdown = recent7.map(date => {
+        const day = days[date] || { tasks: [] };
+        const total = day.tasks.length;
+        const done = day.tasks.filter(t => t.done).length;
+        totalTasks += total;
+        totalDone += done;
+        const details = day.tasks.map(t => {
+          const tpl = templates.find(tp => tp.id === t.templateId);
+          const name = tpl?.name || "未知任务";
+          if (!taskStats[name]) taskStats[name] = { total: 0, done: 0 };
+          taskStats[name].total++;
+          if (t.done) taskStats[name].done++;
+          return `  ${t.done ? "✅" : "❌"} ${name}`;
+        }).join("\n");
+        return `${date}（${done}/${total}）：\n${details}`;
+      }).join("\n\n");
+
+      const taskBreakdown = Object.entries(taskStats)
+        .map(([name, s]) => `- ${name}: ${s.done}/${s.total}（${Math.round(s.done / s.total * 100)}%）`)
+        .join("\n");
+
+      const overallRate = totalTasks ? Math.round(totalDone / totalTasks * 100) : 0;
+
+      return `任务模板：\n${templateList || "（无）"}\n\n本周逐日打卡详情：\n${dailyBreakdown || "（无数据）"}\n\n本周总完成率: ${overallRate}%（${totalDone}/${totalTasks}）\n各任务完成率：\n${taskBreakdown || "（无数据）"}`;
+    }
+
+    async function generateWeekly() {
+      const content = els.analysisContent;
+      content.textContent = "正在生成周报，请稍候...";
+      els.generateWeeklyBtn.disabled = true;
+      try {
+        const data = buildWeeklyData();
+        const weeklyPrompt = getAnalysisPrompt() + "\n\n这是一份周报数据，请以周报的形式输出：总结本周表现、列出亮点和不足、给出下周的改进建议。";
+        const result = await callAI(weeklyPrompt, data);
+        content.textContent = result;
+      } catch (err) {
+        content.textContent = "生成失败：" + err.message;
+      } finally {
+        els.generateWeeklyBtn.disabled = false;
       }
     }
 
@@ -1845,10 +1979,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         return;
       }
       try {
-        const systemPrompt = "你是一个激励助手。根据用户的任务清单，生成一句简短（20字以内）的个性化激励语。要求：积极向上、具体到用户的任务内容、不要泛泛而谈。只输出激励语本身，不要任何解释。";
         const taskNames = (state.templates || []).map(t => t.name).join("、");
         const userPrompt = `我的日常任务：${taskNames || "暂无任务"}`;
-        const quote = await callAI(systemPrompt, userPrompt);
+        const quote = await callAI(getQuotePrompt(), userPrompt);
         els.aiQuote.textContent = quote;
         state.settings.lastQuoteDate = today;
         state.settings.cachedQuote = quote;
@@ -1927,6 +2060,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       });
       els.closeAnalysisBtn.addEventListener("click", () => els.analysisDialog.close());
       els.generateAnalysisBtn.addEventListener("click", generateAnalysis);
+      els.generateWeeklyBtn.addEventListener("click", generateWeekly);
+
+      els.aiStyle.addEventListener("change", () => {
+        const isCustom = els.aiStyle.value === "custom";
+        els.customPromptField.style.display = isCustom ? "" : "none";
+        els.customQuotePromptField.style.display = isCustom ? "" : "none";
+      });
 
       els.templateTab.addEventListener("click", () => setTab("template"));
       els.historyTab.addEventListener("click", () => setTab("history"));
@@ -1945,6 +2085,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           aiEndpoint: els.aiEndpoint.value.trim(),
           aiApiKey: els.aiApiKey.value.trim(),
           aiModel: els.aiModel.value.trim(),
+          aiStyle: els.aiStyle.value,
+          aiCustomPrompt: els.aiCustomPrompt.value.trim(),
+          aiCustomQuotePrompt: els.aiCustomQuotePrompt.value.trim(),
           lastQuoteDate: state.settings.lastQuoteDate || "",
           cachedQuote: state.settings.cachedQuote || ""
         };
@@ -2506,6 +2649,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       els.aiEndpoint.value = state.settings.aiEndpoint || "";
       els.aiApiKey.value = state.settings.aiApiKey || "";
       els.aiModel.value = state.settings.aiModel || "";
+      els.aiStyle.value = state.settings.aiStyle || "friendly";
+      els.aiCustomPrompt.value = state.settings.aiCustomPrompt || "";
+      els.aiCustomQuotePrompt.value = state.settings.aiCustomQuotePrompt || "";
+      const isCustom = state.settings.aiStyle === "custom";
+      els.customPromptField.style.display = isCustom ? "" : "none";
+      els.customQuotePromptField.style.display = isCustom ? "" : "none";
     }
 
     function renderToday() {
