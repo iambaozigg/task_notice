@@ -248,6 +248,19 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       font-size: 14px;
     }
 
+    .ai-btn {
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    .ai-quote {
+      font-size: 13px;
+      color: var(--accent);
+      margin: 4px 0 0;
+      font-style: italic;
+      min-height: 18px;
+    }
+
     .icon-btn {
       width: 36px;
       height: 36px;
@@ -889,8 +902,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         <div>
           <h1 id="appTitle">日程打卡</h1>
           <p class="subtitle" id="appMotto">固定任务、每日执行、历史回看都在这里。</p>
+          <p class="ai-quote" id="aiQuote"></p>
         </div>
       </div>
+      <button class="btn ai-btn" id="analysisBtn" type="button" title="AI 打卡分析">📊 AI 分析</button>
       <label class="today-picker">
         <span>日期</span>
         <input id="dateInput" type="date">
@@ -1041,6 +1056,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 <span>图片最大分辨率（px）</span>
                 <input id="imageMaxWidth" type="number" min="480" max="4096" step="160" placeholder="1920">
                 <small style="color: var(--muted); font-size: 12px;">超过此宽度的图片将被等比缩放，默认 1920px</small>
+              </label>
+              <label class="field">
+                <span>AI 接口地址</span>
+                <input id="aiEndpoint" type="url" placeholder="https://api.deepseek.com/v1/chat/completions">
+                <small style="color: var(--muted); font-size: 12px;">OpenAI 兼容格式的接口地址</small>
+              </label>
+              <label class="field">
+                <span>API Key</span>
+                <input id="aiApiKey" type="password" placeholder="sk-...">
+                <small style="color: var(--muted); font-size: 12px;">密钥仅存储在浏览器本地，不会上传到任何服务器</small>
+              </label>
+              <label class="field">
+                <span>模型名称</span>
+                <input id="aiModel" type="text" placeholder="deepseek-chat">
               </label>
               <button class="btn primary" type="submit">保存个性设置</button>
             </form>
@@ -1202,6 +1231,22 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           <button class="btn primary" type="submit">保存</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <dialog id="analysisDialog">
+    <form method="dialog">
+      <div class="dialog-head">
+        <h3>AI 打卡分析报告</h3>
+        <button class="icon-btn" value="cancel" type="submit" aria-label="关闭">×</button>
+      </div>
+    </form>
+    <div class="dialog-body">
+      <div id="analysisContent" style="white-space: pre-wrap; line-height: 1.8; min-height: 100px;">点击下方按钮生成分析报告</div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="closeAnalysisBtn">关闭</button>
+        <button class="btn primary" type="button" id="generateAnalysisBtn">生成分析报告</button>
+      </div>
     </div>
   </dialog>
 
@@ -1581,7 +1626,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       motto: "固定任务、每日执行、历史回看都在这里。",
       imageRetentionDays: 180,
       imageQuality: 0.8,
-      imageMaxWidth: 1920
+      imageMaxWidth: 1920,
+      aiEndpoint: "",
+      aiApiKey: "",
+      aiModel: "",
+      lastQuoteDate: "",
+      cachedQuote: ""
     };
 
     const state = loadState();
@@ -1631,6 +1681,15 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       imageRetentionDays: document.querySelector("#imageRetentionDays"),
       imageQuality: document.querySelector("#imageQuality"),
       imageMaxWidth: document.querySelector("#imageMaxWidth"),
+      aiEndpoint: document.querySelector("#aiEndpoint"),
+      aiApiKey: document.querySelector("#aiApiKey"),
+      aiModel: document.querySelector("#aiModel"),
+      analysisBtn: document.querySelector("#analysisBtn"),
+      analysisDialog: document.querySelector("#analysisDialog"),
+      analysisContent: document.querySelector("#analysisContent"),
+      closeAnalysisBtn: document.querySelector("#closeAnalysisBtn"),
+      generateAnalysisBtn: document.querySelector("#generateAnalysisBtn"),
+      aiQuote: document.querySelector("#aiQuote"),
       templateCameraBtn: document.querySelector("#templateCameraBtn"),
       templateCameraInput: document.querySelector("#templateCameraInput"),
       taskCameraBtn: document.querySelector("#taskCameraBtn"),
@@ -1685,6 +1744,118 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       applyStoredTemplateListHeight();
       renderSettings();
       renderAll();
+      loadDailyQuote();
+    }
+
+    async function callAI(systemPrompt, userPrompt) {
+      const { aiEndpoint, aiApiKey, aiModel } = state.settings;
+      if (!aiEndpoint || !aiApiKey || !aiModel) {
+        throw new Error("请先在「个性设置」中配置 AI 接口");
+      }
+      const resp = await fetch(aiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${aiApiKey}`
+        },
+        body: JSON.stringify({
+          model: aiModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.text().catch(() => "");
+        throw new Error(`API 请求失败 (${resp.status}): ${err.slice(0, 100)}`);
+      }
+      const data = await resp.json();
+      return data.choices?.[0]?.message?.content?.trim() || "（AI 未返回内容）";
+    }
+
+    function buildAnalysisData() {
+      const days = state.days || {};
+      const templates = state.templates || [];
+      const dates = Object.keys(days).sort();
+      const recent30 = dates.slice(-30);
+      const recent7 = dates.slice(-7);
+
+      const templateList = templates.map(t => `- ${t.name}（${t.category || "未分类"}，${t.repeat}）`).join("\n");
+
+      const recentData = recent7.map(date => {
+        const day = days[date] || { tasks: [] };
+        const total = day.tasks.length;
+        const done = day.tasks.filter(t => t.done).length;
+        const details = day.tasks.map(t => {
+          const tpl = templates.find(tp => tp.id === t.templateId);
+          return `  ${t.done ? "✅" : "❌"} ${tpl?.name || "未知任务"}`;
+        }).join("\n");
+        return `${date}: ${done}/${total}\n${details}`;
+      }).join("\n\n");
+
+      let totalTasks = 0, totalDone = 0;
+      const taskStats = {};
+      recent30.forEach(date => {
+        const day = days[date] || { tasks: [] };
+        day.tasks.forEach(t => {
+          const tpl = templates.find(tp => tp.id === t.templateId);
+          const name = tpl?.name || "未知任务";
+          if (!taskStats[name]) taskStats[name] = { total: 0, done: 0 };
+          taskStats[name].total++;
+          totalTasks++;
+          if (t.done) { taskStats[name].done++; totalDone++; }
+        });
+      });
+
+      const taskBreakdown = Object.entries(taskStats)
+        .map(([name, s]) => `- ${name}: ${s.done}/${s.total}（${Math.round(s.done / s.total * 100)}%）`)
+        .join("\n");
+
+      const overallRate = totalTasks ? Math.round(totalDone / totalTasks * 100) : 0;
+
+      return `任务模板列表：\n${templateList || "（无）"}\n\n近 7 天打卡详情：\n${recentData || "（无数据）"}\n\n近 30 天任务完成率：\n总完成率: ${overallRate}%（${totalDone}/${totalTasks}）\n各任务详情：\n${taskBreakdown || "（无数据）"}`;
+    }
+
+    async function generateAnalysis() {
+      const content = els.analysisContent;
+      content.textContent = "正在分析中，请稍候...";
+      els.generateAnalysisBtn.disabled = true;
+      try {
+        const data = buildAnalysisData();
+        const systemPrompt = "你是一个生活效率分析助手。根据用户的打卡数据，给出简洁、有洞察力的分析报告。分析完成率趋势、找出薄弱环节、给出可执行的改进建议。用中文回答，语气友好鼓励。";
+        const result = await callAI(systemPrompt, data);
+        content.textContent = result;
+      } catch (err) {
+        content.textContent = "分析失败：" + err.message;
+      } finally {
+        els.generateAnalysisBtn.disabled = false;
+      }
+    }
+
+    async function loadDailyQuote() {
+      const today = formatDate(new Date());
+      if (state.settings.lastQuoteDate === today && state.settings.cachedQuote) {
+        els.aiQuote.textContent = state.settings.cachedQuote;
+        return;
+      }
+      if (!state.settings.aiEndpoint || !state.settings.aiApiKey || !state.settings.aiModel) {
+        return;
+      }
+      try {
+        const systemPrompt = "你是一个激励助手。根据用户的任务清单，生成一句简短（20字以内）的个性化激励语。要求：积极向上、具体到用户的任务内容、不要泛泛而谈。只输出激励语本身，不要任何解释。";
+        const taskNames = (state.templates || []).map(t => t.name).join("、");
+        const userPrompt = `我的日常任务：${taskNames || "暂无任务"}`;
+        const quote = await callAI(systemPrompt, userPrompt);
+        els.aiQuote.textContent = quote;
+        state.settings.lastQuoteDate = today;
+        state.settings.cachedQuote = quote;
+        saveState();
+      } catch (err) {
+        console.warn("获取激励语失败:", err.message);
+      }
     }
 
     function bindEvents() {
@@ -1750,6 +1921,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       });
       els.clearDataBtn.addEventListener("click", clearAllData);
 
+      els.analysisBtn.addEventListener("click", () => {
+        els.analysisContent.textContent = "点击下方按钮生成分析报告";
+        els.analysisDialog.showModal();
+      });
+      els.closeAnalysisBtn.addEventListener("click", () => els.analysisDialog.close());
+      els.generateAnalysisBtn.addEventListener("click", generateAnalysis);
+
       els.templateTab.addEventListener("click", () => setTab("template"));
       els.historyTab.addEventListener("click", () => setTab("history"));
       els.settingsTab.addEventListener("click", () => setTab("settings"));
@@ -1763,7 +1941,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           motto: els.mottoInput.value.trim() || defaultSettings.motto,
           imageRetentionDays: Math.min(3650, Math.max(1, Number(els.imageRetentionDays.value) || 180)),
           imageQuality: Number(els.imageQuality.value) || 0.8,
-          imageMaxWidth: Math.min(4096, Math.max(480, Number(els.imageMaxWidth.value) || 1920))
+          imageMaxWidth: Math.min(4096, Math.max(480, Number(els.imageMaxWidth.value) || 1920)),
+          aiEndpoint: els.aiEndpoint.value.trim(),
+          aiApiKey: els.aiApiKey.value.trim(),
+          aiModel: els.aiModel.value.trim(),
+          lastQuoteDate: state.settings.lastQuoteDate || "",
+          cachedQuote: state.settings.cachedQuote || ""
         };
         saveState();
         renderSettings();
@@ -2320,6 +2503,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       els.imageRetentionDays.value = state.settings.imageRetentionDays || 180;
       els.imageQuality.value = state.settings.imageQuality ?? 0.8;
       els.imageMaxWidth.value = state.settings.imageMaxWidth || 1920;
+      els.aiEndpoint.value = state.settings.aiEndpoint || "";
+      els.aiApiKey.value = state.settings.aiApiKey || "";
+      els.aiModel.value = state.settings.aiModel || "";
     }
 
     function renderToday() {
