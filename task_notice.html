@@ -280,6 +280,101 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       padding-top: 4px;
     }
 
+    #analysisDialog {
+      width: min(700px, calc(100% - 28px));
+    }
+
+    #analysisDialog .dialog-body {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .analysis-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-card-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-card-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .ai-loading {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 20px 0;
+    }
+
+    .ai-loading .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      animation: dotPulse 1.4s infinite ease-in-out both;
+    }
+
+    .ai-loading .dot:nth-child(2) { animation-delay: 0.2s; }
+    .ai-loading .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotPulse {
+      0%, 80%, 100% { transform: scale(0.4); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    .md-code {
+      background: #f4f6f0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .md-inline {
+      background: #f4f6f0;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    .md-h1 { font-size: 18px; margin: 12px 0 6px; }
+    .md-h2 { font-size: 16px; margin: 10px 0 4px; }
+    .md-h3 { font-size: 15px; margin: 8px 0 4px; }
+
+    .md-li {
+      padding-left: 16px;
+      position: relative;
+      margin: 3px 0;
+    }
+
+    .md-li::before {
+      content: "•";
+      position: absolute;
+      left: 4px;
+      color: var(--primary);
+    }
+
     .icon-btn {
       width: 36px;
       height: 36px;
@@ -1289,7 +1384,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
     </form>
     <div class="dialog-body">
-      <div id="analysisContent" style="white-space: pre-wrap; line-height: 1.8; min-height: 100px;">点击下方按钮生成分析报告</div>
+      <div class="analysis-stats" id="analysisStats"></div>
+      <div id="analysisContent" style="line-height: 1.8; min-height: 100px;">点击下方按钮生成分析报告</div>
       <div class="dialog-actions">
         <button class="btn" type="button" id="closeAnalysisBtn">关闭</button>
         <button class="btn primary" type="button" id="generateAnalysisBtn">生成分析报告</button>
@@ -1737,6 +1833,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       aiModel: document.querySelector("#aiModel"),
       analysisBtn: document.querySelector("#analysisBtn"),
       analysisDialog: document.querySelector("#analysisDialog"),
+      analysisStats: document.querySelector("#analysisStats"),
       analysisContent: document.querySelector("#analysisContent"),
       closeAnalysisBtn: document.querySelector("#closeAnalysisBtn"),
       generateAnalysisBtn: document.querySelector("#generateAnalysisBtn"),
@@ -1876,6 +1973,117 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       return `任务模板列表：\n${templateList || "（无）"}\n\n近 7 天打卡详情：\n${recentData || "（无数据）"}\n\n近 30 天任务完成率：\n总完成率: ${overallRate}%（${totalDone}/${totalTasks}）\n各任务详情：\n${taskBreakdown || "（无数据）"}`;
     }
 
+    function renderMarkdown(text) {
+      let html = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      html = html.replace(/```[\s\S]*?```/g, (m) => {
+        const code = m.slice(3, -3).replace(/^\w+\n/, "");
+        return `<pre class="md-code"><code>${code}</code></pre>`;
+      });
+      html = html.replace(/`([^`]+)`/g, '<code class="md-inline">$1</code>');
+      html = html.replace(/^### (.+)$/gm, '<h4 class="md-h3">$1</h4>');
+      html = html.replace(/^## (.+)$/gm, '<h3 class="md-h2">$1</h3>');
+      html = html.replace(/^# (.+)$/gm, '<h2 class="md-h1">$1</h2>');
+      html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      html = html.replace(/^- (.+)$/gm, '<div class="md-li">$1</div>');
+      html = html.replace(/\n/g, "<br>");
+      return html;
+    }
+
+    async function callAIStream(systemPrompt, userPrompt, onChunk) {
+      const { aiEndpoint, aiApiKey, aiModel } = state.settings;
+      if (!aiEndpoint || !aiApiKey || !aiModel) {
+        throw new Error("请先在「个性设置」中配置 AI 接口");
+      }
+      const resp = await fetch(aiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${aiApiKey}`
+        },
+        body: JSON.stringify({
+          model: aiModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+          stream: true
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.text().catch(() => "");
+        throw new Error(`API 请求失败 (${resp.status}): ${err.slice(0, 100)}`);
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") continue;
+          try {
+            const json = JSON.parse(payload);
+            const delta = json.choices?.[0]?.delta?.content;
+            if (delta) onChunk(delta);
+          } catch {}
+        }
+      }
+    }
+
+    function renderAnalysisStats(mode) {
+      const days = state.days || {};
+      const templates = state.templates || [];
+      const dates = Object.keys(days).sort();
+      const range = mode === "weekly" ? 7 : 30;
+      const recent = dates.slice(-range);
+
+      let totalTasks = 0, totalDone = 0, streak = 0;
+      const taskStats = {};
+
+      const sortedDates = [...dates].reverse();
+      for (const date of sortedDates) {
+        const day = days[date] || { tasks: [] };
+        if (day.tasks.length === 0) break;
+        const allDone = day.tasks.every(t => t.done);
+        if (allDone) streak++;
+        else break;
+      }
+
+      recent.forEach(date => {
+        const day = days[date] || { tasks: [] };
+        day.tasks.forEach(t => {
+          const tpl = templates.find(tp => tp.id === t.templateId);
+          const name = tpl?.name || "未知任务";
+          if (!taskStats[name]) taskStats[name] = { total: 0, done: 0 };
+          taskStats[name].total++;
+          totalTasks++;
+          if (t.done) { taskStats[name].done++; totalDone++; }
+        });
+      });
+
+      const rate = totalTasks ? Math.round(totalDone / totalTasks * 100) : 0;
+      const sorted = Object.entries(taskStats).sort((a, b) => (b[1].done / b[1].total) - (a[1].done / a[1].total));
+      const best = sorted[0];
+      const worst = sorted[sorted.length - 1];
+
+      els.analysisStats.innerHTML = `
+        <div class="stat-card"><div class="stat-card-value">${rate}%</div><div class="stat-card-label">${mode === "weekly" ? "本周" : "近30天"}完成率</div></div>
+        <div class="stat-card"><div class="stat-card-value">${streak}</div><div class="stat-card-label">连续完成天数</div></div>
+        ${best ? `<div class="stat-card"><div class="stat-card-value">${best[0]}</div><div class="stat-card-label">最佳 (${Math.round(best[1].done / best[1].total * 100)}%)</div></div>` : ""}
+        ${worst && worst !== best ? `<div class="stat-card"><div class="stat-card-value">${worst[0]}</div><div class="stat-card-label">待提升 (${Math.round(worst[1].done / worst[1].total * 100)}%)</div></div>` : ""}
+      `;
+    }
+
     function getAnalysisPrompt() {
       const style = state.settings.aiStyle || "friendly";
       if (style === "custom" && state.settings.aiCustomPrompt) {
@@ -1904,16 +2112,28 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     async function generateAnalysis() {
       const content = els.analysisContent;
-      content.textContent = "正在分析中，请稍候...";
+      content.innerHTML = '<div class="ai-loading"><span>AI 正在分析</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+      renderAnalysisStats("analysis");
       els.generateAnalysisBtn.disabled = true;
+      els.generateWeeklyBtn.disabled = true;
       try {
         const data = buildAnalysisData();
-        const result = await callAI(getAnalysisPrompt(), data);
-        content.textContent = result;
+        let fullText = "";
+        try {
+          await callAIStream(getAnalysisPrompt(), data, (chunk) => {
+            fullText += chunk;
+            content.innerHTML = renderMarkdown(fullText);
+          });
+        } catch (streamErr) {
+          const result = await callAI(getAnalysisPrompt(), data);
+          fullText = result;
+          content.innerHTML = renderMarkdown(fullText);
+        }
       } catch (err) {
-        content.textContent = "分析失败：" + err.message;
+        content.innerHTML = `<div style="color:var(--danger)">分析失败：${err.message}</div>`;
       } finally {
         els.generateAnalysisBtn.disabled = false;
+        els.generateWeeklyBtn.disabled = false;
       }
     }
 
@@ -1955,17 +2175,29 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     async function generateWeekly() {
       const content = els.analysisContent;
-      content.textContent = "正在生成周报，请稍候...";
+      content.innerHTML = '<div class="ai-loading"><span>AI 正在生成周报</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+      renderAnalysisStats("weekly");
       els.generateWeeklyBtn.disabled = true;
+      els.generateAnalysisBtn.disabled = true;
       try {
         const data = buildWeeklyData();
         const weeklyPrompt = getAnalysisPrompt() + "\n\n这是一份周报数据，请以周报的形式输出：总结本周表现、列出亮点和不足、给出下周的改进建议。";
-        const result = await callAI(weeklyPrompt, data);
-        content.textContent = result;
+        let fullText = "";
+        try {
+          await callAIStream(weeklyPrompt, data, (chunk) => {
+            fullText += chunk;
+            content.innerHTML = renderMarkdown(fullText);
+          });
+        } catch (streamErr) {
+          const result = await callAI(weeklyPrompt, data);
+          fullText = result;
+          content.innerHTML = renderMarkdown(fullText);
+        }
       } catch (err) {
-        content.textContent = "生成失败：" + err.message;
+        content.innerHTML = `<div style="color:var(--danger)">生成失败：${err.message}</div>`;
       } finally {
         els.generateWeeklyBtn.disabled = false;
+        els.generateAnalysisBtn.disabled = false;
       }
     }
 
