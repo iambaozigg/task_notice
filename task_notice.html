@@ -1396,6 +1396,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         <button class="btn" type="button" id="closeAnalysisBtn">关闭</button>
         <button class="btn primary" type="button" id="generateAnalysisBtn">生成分析报告</button>
         <button class="btn" type="button" id="generateWeeklyBtn">生成本周周报</button>
+        <button class="btn" type="button" id="generateDailySuggestionBtn">今日建议</button>
       </div>
     </div>
   </dialog>
@@ -1849,6 +1850,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       aiCustomPrompt: document.querySelector("#aiCustomPrompt"),
       aiCustomQuotePrompt: document.querySelector("#aiCustomQuotePrompt"),
       generateWeeklyBtn: document.querySelector("#generateWeeklyBtn"),
+      generateDailySuggestionBtn: document.querySelector("#generateDailySuggestionBtn"),
       aiQuote: document.querySelector("#aiQuote"),
       templateCameraBtn: document.querySelector("#templateCameraBtn"),
       templateCameraInput: document.querySelector("#templateCameraInput"),
@@ -2050,6 +2052,25 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const days = state.days || {};
       const templates = state.templates || [];
       const dates = Object.keys(days).sort();
+
+      // 今日模式：只展示今天的统计
+      if (mode === "daily") {
+        const today = selectedDate;
+        const day = days[today] || { tasks: [] };
+        const total = day.tasks.length;
+        const done = day.tasks.filter(t => t.done).length;
+        const rate = total ? Math.round(done / total * 100) : 0;
+        const undone = total - done;
+
+        els.analysisStats.innerHTML = `
+          <div class="stat-card"><div class="stat-card-value">${total}</div><div class="stat-card-label">今日任务</div></div>
+          <div class="stat-card"><div class="stat-card-value">${done}</div><div class="stat-card-label">已完成</div></div>
+          <div class="stat-card"><div class="stat-card-value">${undone}</div><div class="stat-card-label">待完成</div></div>
+          <div class="stat-card"><div class="stat-card-value">${rate}%</div><div class="stat-card-label">完成率</div></div>
+        `;
+        return;
+      }
+
       const range = mode === "weekly" ? 7 : 30;
       const recent = dates.slice(-range);
 
@@ -2207,6 +2228,63 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
     }
 
+    function buildDailySuggestionData() {
+      const today = selectedDate;
+      const day = state.days[today] || { tasks: [] };
+      const templates = state.templates || [];
+
+      const taskList = day.tasks.map(t => {
+        const tpl = templates.find(tp => tp.id === t.templateId);
+        const name = tpl?.name || "未知任务";
+        const category = tpl?.category || "未分类";
+        const note = tpl?.note || "";
+        const done = t.done ? "已完成" : "未完成";
+        return `- ${name}（${category}，${done}）${note ? "，备注：" + note : ""}`;
+      }).join("\n");
+
+      // 最近 3 天完成情况（用于 AI 参考习惯）
+      const dates = Object.keys(state.days).sort();
+      const recent3 = dates.slice(-4, -1); // 不含今天
+      const recentBreakdown = recent3.map(date => {
+        const d = state.days[date] || { tasks: [] };
+        const done = d.tasks.filter(t => t.done).length;
+        const total = d.tasks.length;
+        return `${date}: ${done}/${total}`;
+      }).join("，");
+
+      return `今天日期：${today}\n今日任务（共 ${day.tasks.length} 项）：\n${taskList || "（无任务）"}\n\n最近 3 天完成情况：${recentBreakdown || "（无数据）"}`;
+    }
+
+    async function generateDailySuggestion() {
+      const content = els.analysisContent;
+      content.innerHTML = '<div class="ai-loading"><span>AI 正在分析今日任务</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+      renderAnalysisStats("daily");
+      els.generateDailySuggestionBtn.disabled = true;
+      els.generateAnalysisBtn.disabled = true;
+      els.generateWeeklyBtn.disabled = true;
+      try {
+        const data = buildDailySuggestionData();
+        const dailyPrompt = getAnalysisPrompt() + "\n\n这是用户今天的任务列表和近期完成情况。请给出今日任务执行建议，包括：\n1. 建议的执行顺序和理由\n2. 每个任务的建议时间分配\n3. 针对具体任务的执行技巧\n4. 今日完成率预估和激励";
+        let fullText = "";
+        try {
+          await callAIStream(dailyPrompt, data, (chunk) => {
+            fullText += chunk;
+            content.innerHTML = renderMarkdown(fullText);
+          });
+        } catch (streamErr) {
+          const result = await callAI(dailyPrompt, data);
+          fullText = result;
+          content.innerHTML = renderMarkdown(fullText);
+        }
+      } catch (err) {
+        content.innerHTML = `<div style="color:var(--danger)">生成失败：${err.message}</div>`;
+      } finally {
+        els.generateDailySuggestionBtn.disabled = false;
+        els.generateAnalysisBtn.disabled = false;
+        els.generateWeeklyBtn.disabled = false;
+      }
+    }
+
     async function loadDailyQuote() {
       const today = formatDate(new Date());
       if (state.settings.lastQuoteDate === today && state.settings.cachedQuote) {
@@ -2299,6 +2377,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       els.closeAnalysisBtn.addEventListener("click", () => els.analysisDialog.close());
       els.generateAnalysisBtn.addEventListener("click", generateAnalysis);
       els.generateWeeklyBtn.addEventListener("click", generateWeekly);
+      els.generateDailySuggestionBtn.addEventListener("click", generateDailySuggestion);
 
       els.aiStyle.addEventListener("change", () => {
         const isCustom = els.aiStyle.value === "custom";
