@@ -1785,7 +1785,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       aiCustomPrompt: "",
       aiCustomQuotePrompt: "",
       lastQuoteDate: "",
-      cachedQuote: ""
+      cachedQuote: "",
+      lastSuggestionDate: "",
+      cachedSuggestion: ""
     };
 
     const state = loadState();
@@ -2257,6 +2259,15 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     async function generateDailySuggestion() {
       const content = els.analysisContent;
+      const today = selectedDate;
+
+      // 检查缓存
+      if (state.settings.lastSuggestionDate === today && state.settings.cachedSuggestion) {
+        renderAnalysisStats("daily");
+        content.innerHTML = renderMarkdown(state.settings.cachedSuggestion);
+        return;
+      }
+
       content.innerHTML = '<div class="ai-loading"><span>AI 正在分析今日任务</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
       renderAnalysisStats("daily");
       els.generateDailySuggestionBtn.disabled = true;
@@ -2276,6 +2287,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           fullText = result;
           content.innerHTML = renderMarkdown(fullText);
         }
+        // 缓存结果
+        state.settings.lastSuggestionDate = today;
+        state.settings.cachedSuggestion = fullText;
+        saveState();
       } catch (err) {
         content.innerHTML = `<div style="color:var(--danger)">生成失败：${err.message}</div>`;
       } finally {
