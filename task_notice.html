@@ -546,6 +546,87 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       resize: vertical;
     }
 
+    .rich-editor {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .rich-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      min-height: 40px;
+      padding: 5px;
+      border-bottom: 1px solid var(--line);
+      background: #f5f7f2;
+    }
+
+    .rich-toolbar button {
+      min-width: 32px;
+      height: 30px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      font-weight: 700;
+    }
+
+    .rich-toolbar button:hover {
+      background: white;
+      border-color: var(--line);
+    }
+
+    .rich-toolbar .divider {
+      width: 1px;
+      height: 22px;
+      background: var(--line);
+      margin: 0 3px;
+    }
+
+    .rich-content {
+      min-height: 120px;
+      padding: 10px;
+      outline: none;
+      line-height: 1.65;
+      overflow: auto;
+      overflow-wrap: anywhere;
+    }
+
+    .rich-content:empty::before {
+      content: attr(data-placeholder);
+      color: #9aa395;
+    }
+
+    .rich-content ul,
+    .rich-content ol,
+    .task-description ul,
+    .task-description ol {
+      margin: 4px 0 4px 20px;
+      padding: 0;
+    }
+
+    .task-description {
+      margin-top: 8px;
+      color: #4f5b4d;
+      font-size: 14px;
+      line-height: 1.65;
+      max-height: 92px;
+      overflow: auto;
+      padding: 8px 10px;
+      border-left: 3px solid #c9d8c3;
+      background: #f7faf5;
+      border-radius: 6px;
+    }
+
+    .task.done .task-description {
+      color: #687264;
+      background: #e7ece3;
+      border-left-color: #9bac92;
+      opacity: 0.82;
+    }
+
     [hidden] {
       display: none !important;
     }
@@ -1117,8 +1198,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 </select>
               </label>
               <label class="field">
-                <span>备注</span>
-                <textarea id="templateNote" maxlength="120" placeholder="可选，比如完成标准或提醒"></textarea>
+                <span>任务描述</span>
+                <div class="rich-editor" data-editor="templateNote">
+                  <div class="rich-toolbar">
+                    <button type="button" data-command="bold" title="加粗">B</button>
+                    <button type="button" data-command="italic" title="斜体"><i>I</i></button>
+                    <button type="button" data-command="underline" title="下划线"><u>U</u></button>
+                    <span class="divider"></span>
+                    <button type="button" data-command="insertUnorderedList" title="无序列表">•</button>
+                    <button type="button" data-command="insertOrderedList" title="有序列表">1.</button>
+                    <button type="button" data-command="createLink" title="链接">🔗</button>
+                    <button type="button" data-command="removeFormat" title="清除格式">Tx</button>
+                  </div>
+                  <div id="templateNote" class="rich-content" contenteditable="true" data-placeholder="可选，比如完成标准或提醒"></div>
+                </div>
               </label>
               <div class="field">
                 <span>参考图片</span>
@@ -1373,8 +1466,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           </select>
         </label>
         <label class="field">
-          <span>备注</span>
-          <textarea id="taskNote" maxlength="120"></textarea>
+          <span>任务描述</span>
+          <div class="rich-editor" data-editor="taskNote">
+            <div class="rich-toolbar">
+              <button type="button" data-command="bold" title="加粗">B</button>
+              <button type="button" data-command="italic" title="斜体"><i>I</i></button>
+              <button type="button" data-command="underline" title="下划线"><u>U</u></button>
+              <span class="divider"></span>
+              <button type="button" data-command="insertUnorderedList" title="无序列表">•</button>
+              <button type="button" data-command="insertOrderedList" title="有序列表">1.</button>
+              <button type="button" data-command="createLink" title="链接">🔗</button>
+              <button type="button" data-command="removeFormat" title="清除格式">Tx</button>
+            </div>
+            <div id="taskNote" class="rich-content" contenteditable="true" data-placeholder="写下完成标准、背景信息或注意事项"></div>
+          </div>
         </label>
         <label class="field">
           <span>推迟到日期</span>
@@ -2256,9 +2361,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         const tpl = templates.find(tp => tp.id === t.templateId);
         const name = tpl?.name || "未知任务";
         const category = tpl?.category || "未分类";
-        const note = tpl?.note || "";
+        const note = richHTMLToText(tpl?.note || "");
         const done = t.done ? "已完成" : "未完成";
-        return `- ${name}（${category}，${done}）${note ? "，备注：" + note : ""}`;
+        return `- ${name}（${category}，${done}）${note ? "，描述：" + note : ""}`;
       }).join("\n");
 
       // 最近 3 天完成情况（用于 AI 参考习惯）
@@ -2360,6 +2465,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       bindImageUpload("taskImageUpload", "taskImageInput", "taskImagePreview", "taskImages");
       els.templateRepeat.addEventListener("change", updateTemplateWeekdayVisibility);
       bindImageUpload("templateImageUpload", "templateImageInput", "templateImagePreview", "templateImages");
+      bindRichEditors();
 
       // 拍照按钮事件
       els.templateCameraBtn.addEventListener("click", () => els.templateCameraInput.click());
@@ -2466,6 +2572,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
         templateImages = [];
         els.templateForm.reset();
+        setRichEditorHTML(els.templateNote, "");
         document.getElementById("templateImagePreview").innerHTML = "";
         updateTemplateWeekdayVisibility();
         saveState();
@@ -2477,7 +2584,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         const payload = {
           name: els.taskName.value.trim(),
           category: els.taskCategory.value,
-          note: els.taskNote.value.trim(),
+          note: getRichEditorHTML(els.taskNote),
           images: [...taskImages]
         };
         if (!payload.name) return;
@@ -2981,6 +3088,97 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       renderHistory();
     }
 
+    function bindRichEditors() {
+      document.querySelectorAll(".rich-toolbar button[data-command]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const editor = button.closest(".rich-editor")?.querySelector(".rich-content");
+          if (!editor) return;
+          editor.focus();
+          const command = button.dataset.command;
+          if (command === "createLink") {
+            const url = prompt("输入链接地址");
+            if (!url) return;
+            const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+            document.execCommand(command, false, normalizedUrl);
+          } else {
+            document.execCommand(command, false, null);
+          }
+          sanitizeRichEditor(editor);
+        });
+      });
+
+      document.querySelectorAll(".rich-content").forEach((editor) => {
+        editor.addEventListener("paste", (event) => {
+          event.preventDefault();
+          const text = event.clipboardData?.getData("text/plain") || "";
+          document.execCommand("insertText", false, text);
+        });
+        editor.addEventListener("blur", () => sanitizeRichEditor(editor));
+      });
+    }
+
+    function getRichEditorHTML(editor) {
+      return sanitizeRichHTML(editor.innerHTML).trim();
+    }
+
+    function setRichEditorHTML(editor, html) {
+      editor.innerHTML = sanitizeRichHTML(html || "");
+    }
+
+    function sanitizeRichEditor(editor) {
+      editor.innerHTML = sanitizeRichHTML(editor.innerHTML);
+    }
+
+    function sanitizeRichHTML(html) {
+      const template = document.createElement("template");
+      template.innerHTML = String(html || "");
+      const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "UL", "OL", "LI", "A", "BR", "P", "DIV"]);
+
+      const cleanNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent || "");
+        if (node.nodeType !== Node.ELEMENT_NODE) return document.createTextNode("");
+
+        const tag = node.tagName;
+        if (!allowedTags.has(tag)) {
+          const fragment = document.createDocumentFragment();
+          node.childNodes.forEach((child) => fragment.appendChild(cleanNode(child)));
+          return fragment;
+        }
+
+        const el = document.createElement(tag.toLowerCase());
+        if (tag === "A") {
+          const href = node.getAttribute("href") || "";
+          if (/^https?:\/\//i.test(href)) {
+            el.setAttribute("href", href);
+            el.setAttribute("target", "_blank");
+            el.setAttribute("rel", "noopener noreferrer");
+          }
+        }
+        node.childNodes.forEach((child) => el.appendChild(cleanNode(child)));
+        return el;
+      };
+
+      const fragment = document.createDocumentFragment();
+      template.content.childNodes.forEach((node) => fragment.appendChild(cleanNode(node)));
+      const wrapper = document.createElement("div");
+      wrapper.appendChild(fragment);
+      return wrapper.innerHTML
+        .replace(/<div><br><\/div>/g, "")
+        .replace(/<p><br><\/p>/g, "")
+        .trim();
+    }
+
+    function renderNote(note) {
+      const html = sanitizeRichHTML(note || "");
+      return html ? `<div class="task-description">${html}</div>` : "";
+    }
+
+    function richHTMLToText(html) {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = sanitizeRichHTML(html || "");
+      return (wrapper.textContent || "").replace(/\s+/g, " ").trim();
+    }
+
     function renderSettings() {
       state.settings = { ...defaultSettings, ...(state.settings || {}) };
       const ownerName = state.settings.ownerName.trim();
@@ -3034,8 +3232,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               <span class="tag">${escapeHtml(task.category)}</span>
               <span class="tag">${repeatLabel(task)}</span>
               ${task.postponedFrom ? `<span class="tag">由 ${escapeHtml(task.postponedFrom)} 推迟</span>` : ""}
-              ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
             </div>
+            ${renderNote(task.note)}
             ${renderTaskImages(task.images, "task-images")}
           </div>
           <div class="task-actions">
@@ -3066,8 +3264,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             <div class="task-meta">
               <span class="tag">${escapeHtml(task.category)}</span>
               <span class="tag">${repeatLabel(task)}</span>
-              ${task.note ? `<span>${escapeHtml(task.note)}</span>` : ""}
             </div>
+            ${renderNote(task.note)}
             ${renderTaskImages(task.images, "task-images")}
           </div>
           <div class="task-actions">
@@ -3194,7 +3392,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         els.templateRepeat.value = task.repeat || "daily";
         els.templateWeekday.value = String(task.weekday ?? 1);
         updateTemplateWeekdayVisibility();
-        els.templateNote.value = task.note || "";
+        setRichEditorHTML(els.templateNote, task.note || "");
         templateImages = [...(task.images || [])];
         renderImagePreview(document.getElementById("templateImagePreview"), templateImages);
         els.saveTemplateBtn.textContent = "保存模板修改";
@@ -3226,7 +3424,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       els.editingId.value = data.id;
       els.taskName.value = data.name;
       els.taskCategory.value = data.category;
-      els.taskNote.value = data.note || "";
+      setRichEditorHTML(els.taskNote, data.note || "");
       els.taskPostponeDate.value = selectedDate;
       taskImages = [...(data.images || [])];
       renderImagePreview(document.getElementById("taskImagePreview"), taskImages);
@@ -3240,7 +3438,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         category: els.templateCategory.value,
         repeat: els.templateRepeat.value,
         weekday: els.templateRepeat.value === "weekly" ? Number(els.templateWeekday.value) : null,
-        note: els.templateNote.value.trim(),
+        note: getRichEditorHTML(els.templateNote),
         images: []
       };
     }
