@@ -599,6 +599,21 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       color: #9aa395;
     }
 
+    .rich-limit {
+      display: flex;
+      justify-content: flex-end;
+      padding: 4px 8px 7px;
+      color: var(--muted);
+      font-size: 12px;
+      background: #f5f7f2;
+      border-top: 1px solid var(--line);
+    }
+
+    .rich-limit.over {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
     .rich-content ul,
     .rich-content ol,
     .task-description ul,
@@ -1210,7 +1225,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                     <button type="button" data-command="createLink" title="链接">🔗</button>
                     <button type="button" data-command="removeFormat" title="清除格式">Tx</button>
                   </div>
-                  <div id="templateNote" class="rich-content" contenteditable="true" data-placeholder="可选，比如完成标准或提醒"></div>
+                  <div id="templateNote" class="rich-content" contenteditable="true" data-placeholder="可选，比如完成标准或提醒" data-max-length="1000"></div>
+                  <div class="rich-limit" id="templateNoteLimit">0/1000</div>
                 </div>
               </label>
               <div class="field">
@@ -1478,7 +1494,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               <button type="button" data-command="createLink" title="链接">🔗</button>
               <button type="button" data-command="removeFormat" title="清除格式">Tx</button>
             </div>
-            <div id="taskNote" class="rich-content" contenteditable="true" data-placeholder="写下完成标准、背景信息或注意事项"></div>
+            <div id="taskNote" class="rich-content" contenteditable="true" data-placeholder="写下完成标准、背景信息或注意事项" data-max-length="2000"></div>
+            <div class="rich-limit" id="taskNoteLimit">0/2000</div>
           </div>
         </label>
         <label class="field">
@@ -2555,6 +2572,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         event.preventDefault();
         const payload = readTemplateForm();
         if (!payload.name) return;
+        if (!validateRichEditorLength(els.templateNote, "模板任务描述")) return;
 
         if (editingTemplateId) {
           const template = state.templates.find((item) => item.id === editingTemplateId);
@@ -2588,6 +2606,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           images: [...taskImages]
         };
         if (!payload.name) return;
+        if (!validateRichEditorLength(els.taskNote, "任务描述")) return;
 
         const scope = els.editingScope.value;
         const id = els.editingId.value;
@@ -3104,6 +3123,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             document.execCommand(command, false, null);
           }
           sanitizeRichEditor(editor);
+          updateRichLimit(editor);
         });
       });
 
@@ -3112,8 +3132,14 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           event.preventDefault();
           const text = event.clipboardData?.getData("text/plain") || "";
           document.execCommand("insertText", false, text);
+          updateRichLimit(editor);
         });
-        editor.addEventListener("blur", () => sanitizeRichEditor(editor));
+        editor.addEventListener("input", () => updateRichLimit(editor));
+        editor.addEventListener("blur", () => {
+          sanitizeRichEditor(editor);
+          updateRichLimit(editor);
+        });
+        updateRichLimit(editor);
       });
     }
 
@@ -3123,10 +3149,31 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     function setRichEditorHTML(editor, html) {
       editor.innerHTML = sanitizeRichHTML(html || "");
+      updateRichLimit(editor);
     }
 
     function sanitizeRichEditor(editor) {
       editor.innerHTML = sanitizeRichHTML(editor.innerHTML);
+    }
+
+    function validateRichEditorLength(editor, label) {
+      const max = Number(editor.dataset.maxLength) || 0;
+      if (!max) return true;
+      const count = richHTMLToText(editor.innerHTML).length;
+      if (count <= max) return true;
+      toast(`${label}最多 ${max} 字，当前 ${count} 字`);
+      editor.focus();
+      updateRichLimit(editor);
+      return false;
+    }
+
+    function updateRichLimit(editor) {
+      const max = Number(editor.dataset.maxLength) || 0;
+      const limitEl = document.querySelector(`#${editor.id}Limit`);
+      if (!max || !limitEl) return;
+      const count = richHTMLToText(editor.innerHTML).length;
+      limitEl.textContent = `${count}/${max}`;
+      limitEl.classList.toggle("over", count > max);
     }
 
     function sanitizeRichHTML(html) {
@@ -3230,7 +3277,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             <div class="task-name">${escapeHtml(task.name)}</div>
             <div class="task-meta">
               <span class="tag">${escapeHtml(task.category)}</span>
-              <span class="tag">${repeatLabel(task)}</span>
+              ${repeatLabel(task) ? `<span class="tag">${repeatLabel(task)}</span>` : ""}
               ${task.postponedFrom ? `<span class="tag">由 ${escapeHtml(task.postponedFrom)} 推迟</span>` : ""}
             </div>
             ${renderNote(task.note)}
@@ -3263,7 +3310,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             <strong>${escapeHtml(task.name)}</strong>
             <div class="task-meta">
               <span class="tag">${escapeHtml(task.category)}</span>
-              <span class="tag">${repeatLabel(task)}</span>
+              ${repeatLabel(task) ? `<span class="tag">${repeatLabel(task)}</span>` : ""}
             </div>
             ${renderNote(task.note)}
             ${renderTaskImages(task.images, "task-images")}
@@ -3465,6 +3512,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     function repeatLabel(task) {
+      if (!task.repeat && !task.createdFromTemplate && !task.templateId) return "";
       const repeat = task.repeat || "daily";
       if (repeat === "workday") return "工作日重复";
       if (repeat === "weekly") return `每周${weekdayLabel(task.weekday ?? 1)}`;
