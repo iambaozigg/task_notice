@@ -3129,7 +3129,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           if (isInlineRichCommand(command) && !hasRichTextSelection(editor)) {
             return;
           }
-          if (command === "createLink") {
+          if (isInlineRichCommand(command)) {
+            applyInlineRichCommand(editor, command);
+          } else if (command === "createLink") {
             const url = prompt("输入链接地址");
             if (!url) return;
             const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
@@ -3163,6 +3165,35 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     function isInlineRichCommand(command) {
       return ["bold", "italic", "underline", "strikeThrough"].includes(command);
+    }
+
+    function getInlineRichTag(command) {
+      return {
+        bold: "strong",
+        italic: "em",
+        underline: "u",
+        strikeThrough: "s"
+      }[command] || "";
+    }
+
+    function applyInlineRichCommand(editor, command) {
+      const selection = window.getSelection?.();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+      if (!editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) return;
+
+      const tag = getInlineRichTag(command);
+      if (!tag) return;
+
+      const range = selection.getRangeAt(0);
+      const wrapper = document.createElement(tag);
+      wrapper.appendChild(range.extractContents());
+      range.insertNode(wrapper);
+
+      const after = document.createRange();
+      after.setStartAfter(wrapper);
+      after.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(after);
     }
 
     function hasRichTextSelection(editor) {
