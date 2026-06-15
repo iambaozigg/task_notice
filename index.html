@@ -3138,6 +3138,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       });
 
       document.querySelectorAll(".rich-content").forEach((editor) => {
+        editor.addEventListener("focus", () => {
+          resetInlineRichCommandStateForEmptyEditor(editor);
+        });
         editor.addEventListener("click", (event) => {
           clearRichCommandStateOnPlainClick(editor, event);
         });
@@ -3156,6 +3159,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       });
     }
 
+    function resetInlineRichCommandStateForEmptyEditor(editor) {
+      if (richHTMLToText(editor.innerHTML)) return;
+      resetInlineRichCommandState();
+    }
+
     function clearRichCommandStateOnPlainClick(editor, event) {
       if (event.detail !== 1 || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.target.closest?.(".rich-toolbar")) return;
@@ -3168,6 +3176,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const range = selection.getRangeAt(0);
       if (!range.collapsed) return;
 
+      resetInlineRichCommandState();
+    }
+
+    function resetInlineRichCommandState() {
       ["bold", "italic", "underline"].forEach((command) => {
         try {
           if (document.queryCommandState(command)) {
