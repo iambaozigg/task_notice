@@ -551,6 +551,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       background: white;
       border-radius: 8px;
       overflow: hidden;
+      resize: vertical;
+      min-height: 190px;
+      max-height: 60vh;
+      display: flex;
+      flex-direction: column;
     }
 
     .rich-toolbar {
@@ -587,6 +592,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     .rich-content {
       min-height: 120px;
+      flex: 1;
       padding: 10px;
       outline: none;
       line-height: 1.65;
