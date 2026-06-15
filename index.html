@@ -3176,6 +3176,15 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }[command] || "";
     }
 
+    function getInlineRichTags(command) {
+      return {
+        bold: ["STRONG", "B"],
+        italic: ["EM", "I"],
+        underline: ["U"],
+        strikeThrough: ["S", "STRIKE", "DEL"]
+      }[command] || [];
+    }
+
     function applyInlineRichCommand(editor, command) {
       const selection = window.getSelection?.();
       if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
@@ -3185,6 +3194,27 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       if (!tag) return;
 
       const range = selection.getRangeAt(0);
+      const formattedAncestors = getSelectedInlineFormatAncestors(editor, command, range);
+      if (formattedAncestors.length) {
+        const last = formattedAncestors[formattedAncestors.length - 1];
+        const parent = last.parentNode;
+        const nextSibling = last.nextSibling;
+        formattedAncestors.forEach(unwrapElement);
+        const after = document.createRange();
+        if (parent && nextSibling && parent.contains(nextSibling)) {
+          after.setStartBefore(nextSibling);
+        } else if (parent) {
+          after.setStart(parent, parent.childNodes.length);
+        } else {
+          after.selectNodeContents(editor);
+          after.collapse(false);
+        }
+        after.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(after);
+        return;
+      }
+
       const wrapper = document.createElement(tag);
       wrapper.appendChild(range.extractContents());
       range.insertNode(wrapper);
@@ -3194,6 +3224,42 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       after.collapse(true);
       selection.removeAllRanges();
       selection.addRange(after);
+    }
+
+    function getSelectedInlineFormatAncestors(editor, command, range) {
+      const tags = new Set(getInlineRichTags(command));
+      const ancestors = new Set();
+      const addAncestor = (node) => {
+        const ancestor = closestMatchingInlineAncestor(node, editor, tags);
+        if (ancestor) ancestors.add(ancestor);
+      };
+
+      addAncestor(range.startContainer);
+      addAncestor(range.endContainer);
+
+      editor.querySelectorAll(Array.from(tags).join(",")).forEach((node) => {
+        if (range.intersectsNode(node)) ancestors.add(node);
+      });
+
+      return Array.from(ancestors).filter((node) => editor.contains(node));
+    }
+
+    function closestMatchingInlineAncestor(node, editor, tags) {
+      let current = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+      while (current && current !== editor) {
+        if (tags.has(current.tagName)) return current;
+        current = current.parentElement;
+      }
+      return null;
+    }
+
+    function unwrapElement(element) {
+      const parent = element.parentNode;
+      if (!parent) return;
+      while (element.firstChild) {
+        parent.insertBefore(element.firstChild, element);
+      }
+      parent.removeChild(element);
     }
 
     function hasRichTextSelection(editor) {
