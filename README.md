@@ -1,110 +1,102 @@
 # 日程打卡
 
-一个纯前端的每日任务打卡应用，单 HTML 文件，无需后端，直接浏览器打开即可使用。
+一个纯前端的每日任务打卡应用。项目入口为 `index.html`，无需后端服务，直接用浏览器打开即可使用。
 
-## 分支说明
+## 当前版本
 
-本仓库维护两个独立版本，近期无合并计划：
+当前发布版本：`V2.0.1`
 
-| 分支 | 版本 | 说明 |
-|------|------|------|
-| `master` | 基础版 | 纯文本打卡，数据存储在 localStorage |
-| `dev` | 图片版 | 在基础版上新增图片存储功能，使用 IndexedDB 存储图片 |
+相对 `V1.0.0`，`V2.x` 主要增加了 AI 分析能力，并保留图片、ZIP 导入导出等增强功能。
 
-## 两个版本的差异
+| 分支 | 用途 | 当前状态 |
+|------|------|----------|
+| `master` | 稳定发布分支 | 已同步到 `V2.0.1` |
+| `dev` | 日常集成分支 | 已同步到 `V2.0.1` |
 
-### master（基础版）
+## 主要功能
 
-- 任务模板管理（增删改）
-- 每日打卡（完成/取消）
-- 历史回看（按月日历）
-- 个性设置（名称、座右铭）
-- 数据导入/导出（JSON）
-- 数据存储：仅 localStorage
-
-### dev（图片版）
-
-包含基础版全部功能，另外新增：
-
-- 任务关联图片（模板参考图 + 每日打卡照片）
-- 图片上传（点击选择、拖拽上传、粘贴上传、移动端拍照）
-- 图片自动压缩（可配置最大分辨率和压缩质量，默认 1920px / 0.8）
-- 缩略图展示 + 全屏查看器（左右切换、键盘导航）
-- 图片自动清理（可配置保留天数，默认 180 天）
-- ZIP 导出/导入（含图片打包，支持时间范围筛选）
-- 清除所有数据（二次确认，不可恢复）
-- AI 打卡分析报告（接入大模型，分析完成率趋势和改进建议，支持流式输出和 Markdown 渲染）
-- AI 周报（总结本周表现、亮点不足、下周改进建议）
-- AI 今日任务建议（执行顺序、时间分配、执行技巧、完成率预估，同一天自动缓存）
-- AI 智能激励语（每天自动生成个性化激励语）
-- AI 分析风格选择（友好鼓励 / 严格督促 / 简洁高效 / 自定义 Prompt）
-- 数据存储：localStorage（元数据）+ IndexedDB（图片二进制）
-
-## 注意事项
-
-### 关于数据
-
-- **两个版本的 localStorage 数据格式兼容**：master 的数据可以在 dev 中打开，dev 会自动迁移缺少的字段
-- **dev 版的图片数据存在 IndexedDB 中**，不在 localStorage 的 JSON 导出文件里
-- **导出/导入**：dev 版支持两种格式
-  - **ZIP 包**（推荐）：包含 `data.json` 和 `images/` 文件夹，图片完整打包，可按时间范围筛选导出
-  - **JSON 文件**：仅包含图片 ID 引用，不含图片本身，导入后图片需重新上传
-- **向后兼容**：导入时自动识别 ZIP 或 JSON 格式，旧版 JSON 文件仍可正常导入
-- **图片清理机制**：dev 版每次打开页面时，会自动清除超过保留天数的图片。默认 180 天，可在「个性设置」中调整
-
-### 关于浏览器兼容性
-
-- 需要支持 IndexedDB 的现代浏览器（Chrome、Firefox、Edge、Safari 均可）
-- 隐私模式下 IndexedDB 可能不可用，图片功能会降级（控制台有警告，不影响其他功能）
-
-### 关于存储空间
-
-- localStorage 通常限制 5-10MB，仅存储文本数据，一般不会满
-- IndexedDB 限制较大（通常几百 MB 到几 GB），但建议定期清理过期图片
-- 单张图片上传限制 20MB，超过会提示
-
-### 关于跨分支维护
-
-如果需要在两个版本之间同步基础功能的修复，使用 cherry-pick：
-
-```bash
-# 在 master 上修复 bug 后，把该 commit 挑选到 dev
-git checkout dev
-git cherry-pick <commit-hash>
-
-# 反之亦然
-git checkout master
-git cherry-pick <commit-hash>
-```
-
-**注意**：dev 版新增的代码（IndexedDB、图片 UI 等）不能 cherry-pick 到 master，因为 master 没有这些基础设施。
+- 每日任务打卡：完成、取消、历史回看。
+- 任务模板管理：新增、编辑、删除、排序。
+- 富文本任务描述：支持更丰富的任务说明。
+- 个性设置：名称、座右铭、图片保留天数、压缩参数等。
+- 图片记录：模板参考图和每日打卡照片。
+- 图片上传：点击选择、拖拽上传、粘贴上传、移动端拍照。
+- 图片压缩：可配置最大分辨率和压缩质量，默认 1920px / 0.8。
+- 图片查看器：缩略图展示、全屏查看、左右切换、键盘导航。
+- 图片自动清理：默认保留 180 天，可在设置中调整。
+- 数据导入导出：支持 JSON，以及包含图片的 ZIP 包。
+- AI 打卡分析报告：分析完成率趋势、行为模式和改进建议。
+- AI 周报：总结本周表现、亮点、不足和下周建议。
+- AI 今日任务建议：生成执行顺序、时间分配、执行技巧和完成率预估。
+- AI 智能激励语：每天生成个性化鼓励内容。
+- AI 分析风格：支持友好鼓励、严格督促、简洁高效、自定义 Prompt。
 
 ## 使用方式
 
-直接用浏览器打开 `task_notice.html` 即可，无需安装任何依赖，无需网络连接。
+直接用浏览器打开 `index.html`。
 
-dev 版内嵌了 [JSZip](https://github.com/Stuk/jszip)（~98KB）库，所有功能离线可用。IndexedDB 使用浏览器原生 API，无需第三方依赖。
+本应用为单文件前端应用，内嵌所需前端资源。除 AI 功能需要访问用户配置的大模型服务外，任务、图片和打卡数据均保存在浏览器本地。
 
-## 数据存储位置
+## 数据存储
 
-所有数据都存在浏览器本地，不会上传到任何服务器。
-
-| 数据类型 | 存储方式 | 位置 |
+| 数据类型 | 存储方式 | 说明 |
 |----------|----------|------|
-| 任务、模板、设置 | localStorage | 浏览器本地，按域名隔离 |
-| 图片二进制数据（仅 dev 版） | IndexedDB | 浏览器本地，按域名隔离 |
+| 任务、模板、设置、打卡记录 | localStorage | 文本和元数据 |
+| 图片二进制数据 | IndexedDB | 模板参考图和每日打卡照片 |
 
-各浏览器的 IndexedDB 存储路径（Windows）：
+注意：
 
-| 浏览器 | 路径 |
-|--------|------|
-| Chrome | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\` |
-| Edge | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\IndexedDB\` |
-| Firefox | `%APPDATA%\Mozilla\Firefox\Profiles\<profile>\storage\default\` |
+- localStorage 和 IndexedDB 都是浏览器本地存储。
+- 数据按浏览器隔离，Chrome、Edge、Firefox 之间不会自动共享。
+- 清除浏览器站点数据时，localStorage 和 IndexedDB 可能一起被删除。
+- JSON 导出不包含图片二进制，只包含图片 ID 引用。
+- ZIP 导出包含 `data.json` 和 `images/`，适合完整备份和迁移。
 
-**注意事项：**
+## 浏览器兼容性
 
-- localStorage 和 IndexedDB 都是浏览器本地存储，不经过网络
-- 数据按浏览器隔离：Chrome 里存的数据在 Firefox 里看不到
-- 清除浏览器数据时如果勾选了「站点数据」，localStorage 和 IndexedDB 都会被删除
-- `file://` 协议打开的 HTML 文件，数据绑定在当前浏览器的本地配置中
+建议使用现代浏览器：
+
+- Chrome
+- Edge
+- Firefox
+- Safari
+
+隐私模式下 IndexedDB 可能不可用，图片功能可能降级，但基础打卡功能仍可使用。
+
+## 版本记录
+
+| 标签 | 说明 |
+|------|------|
+| `V1.0.0` | 稳定版，包含图片存储、ZIP 导出导入等能力 |
+| `V2.0.0` | 增加 AI 分析、AI 周报、今日任务建议、智能激励语等能力 |
+| `V2.0.1` | 将入口文件从 `task_notice.html` 改为 `index.html` |
+
+## 分支和远端
+
+当前仓库同时维护 Gitee 和 GitHub 远端：
+
+```bash
+origin  https://gitee.com/jim1986-gitee/task_notice
+github  git@github.com:iambaozigg/task_notice.git
+```
+
+常用发布流程：
+
+```bash
+git switch dev
+# 开发和提交
+
+git switch master
+git merge dev
+
+git tag -a Vx.y.z -m "Release Vx.y.z - ..."
+
+git push origin master dev --tags
+git push github master dev --tags
+```
+
+本仓库的 GitHub SSH 推送使用 443 端口：
+
+```bash
+git config core.sshCommand "ssh -o HostName=ssh.github.com -p 443"
+```
