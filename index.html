@@ -1226,6 +1226,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                     <button type="button" data-command="bold" title="加粗">B</button>
                     <button type="button" data-command="italic" title="斜体"><i>I</i></button>
                     <button type="button" data-command="underline" title="下划线"><u>U</u></button>
+                    <button type="button" data-command="strikeThrough" title="删除线"><s>S</s></button>
                     <span class="divider"></span>
                     <button type="button" data-command="insertUnorderedList" title="无序列表">•</button>
                     <button type="button" data-command="insertOrderedList" title="有序列表">1.</button>
@@ -1495,6 +1496,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               <button type="button" data-command="bold" title="加粗">B</button>
               <button type="button" data-command="italic" title="斜体"><i>I</i></button>
               <button type="button" data-command="underline" title="下划线"><u>U</u></button>
+              <button type="button" data-command="strikeThrough" title="删除线"><s>S</s></button>
               <span class="divider"></span>
               <button type="button" data-command="insertUnorderedList" title="无序列表">•</button>
               <button type="button" data-command="insertOrderedList" title="有序列表">1.</button>
@@ -3160,7 +3162,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     function isInlineRichCommand(command) {
-      return ["bold", "italic", "underline"].includes(command);
+      return ["bold", "italic", "underline", "strikeThrough"].includes(command);
     }
 
     function hasRichTextSelection(editor) {
@@ -3234,7 +3236,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     function closestInlineFormatAncestor(node, editor) {
       let current = node.parentElement;
       let candidate = null;
-      const inlineTags = new Set(["B", "STRONG", "I", "EM", "U", "A"]);
+      const inlineTags = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "DEL", "A"]);
 
       while (current && current !== editor) {
         if (inlineTags.has(current.tagName)) candidate = current;
@@ -3354,7 +3356,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     function sanitizeRichHTML(html) {
       const template = document.createElement("template");
       template.innerHTML = String(html || "");
-      const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "UL", "OL", "LI", "A", "BR", "P", "DIV"]);
+      const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "DEL", "UL", "OL", "LI", "A", "BR", "P", "DIV"]);
 
       const cleanNode = (node) => {
         if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent || "");
