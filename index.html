@@ -3146,7 +3146,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         });
         editor.addEventListener("input", () => updateRichLimit(editor));
         editor.addEventListener("blur", () => {
-          sanitizeRichEditor(editor);
+          sanitizeRichEditor(editor, { preserveSelection: false });
           updateRichLimit(editor);
         });
         updateRichLimit(editor);
@@ -3162,11 +3162,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       updateRichLimit(editor);
     }
 
-    function sanitizeRichEditor(editor) {
+    function sanitizeRichEditor(editor, options = {}) {
+      const preserveSelection = options.preserveSelection ?? document.activeElement === editor;
       const sanitized = sanitizeRichHTML(editor.innerHTML);
       if (editor.innerHTML === sanitized) return;
 
-      const selectionOffsets = getRichSelectionOffsets(editor);
+      const selectionOffsets = preserveSelection ? getRichSelectionOffsets(editor) : null;
       editor.innerHTML = sanitized;
       restoreRichSelectionOffsets(editor, selectionOffsets);
     }
