@@ -2067,6 +2067,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     const STORAGE_KEY = "daily-checkin-v1";
     const LOCAL_SETTINGS_KEY = "daily-checkin-local-settings-v1";
+    const SYNC_META_KEY = "daily-checkin-sync-meta-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const CLOUD_CONFIG = {
       enabled: true,
@@ -2122,6 +2123,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     };
 
     let localSettings = loadLocalSettings();
+    let syncMeta = loadSyncMeta();
     const state = loadState();
     let selectedDate = formatDate(new Date());
     let visibleMonth = selectedDate.slice(0, 7);
@@ -2262,6 +2264,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       user: null,
       docId: null,
       loginName: "",
+      lastRemoteUpdatedAt: 0,
       initialized: false,
 
       isConfigured() {
@@ -2328,17 +2331,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         const docs = result?.data || [];
         if (!docs.length) {
           const initialData = toCloudState(state);
+          const updatedAt = Date.now();
           await this.db.collection(CLOUD_CONFIG.collection).doc(owner).set({
             owner,
             data: initialData,
             version: 1,
-            updatedAt: Date.now()
+            updatedAt
           });
           this.docId = owner;
+          this.lastRemoteUpdatedAt = updatedAt;
           return initialData;
         }
         const doc = docs[0];
         this.docId = doc._id || owner;
+        this.lastRemoteUpdatedAt = Number(doc.updatedAt) || 0;
         if (!isValidCloudData(doc.data)) {
           throw new Error("云端数据格式异常，已保留本机数据");
         }
@@ -2349,13 +2355,17 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         await this.init();
         const owner = this.assertLoggedIn();
         const docId = this.docId || owner;
+        const updatedAt = Date.now();
         await this.db.collection(CLOUD_CONFIG.collection).doc(docId).set({
           owner,
           data: toCloudState(sourceState),
           version: 1,
-          updatedAt: Date.now()
+          updatedAt
         });
         this.docId = docId;
+        this.lastRemoteUpdatedAt = updatedAt;
+        markCloudSynced(updatedAt);
+        return updatedAt;
       },
 
       async deleteUserState() {
@@ -2378,6 +2388,36 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     function saveLocalSettings() {
       localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(localSettings || {}));
+    }
+
+    function loadSyncMeta() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SYNC_META_KEY));
+        return {
+          localUpdatedAt: Number(saved?.localUpdatedAt) || 0,
+          lastCloudSyncedAt: Number(saved?.lastCloudSyncedAt) || 0
+        };
+      } catch (err) {
+        console.warn("Failed to load sync meta:", err);
+        return { localUpdatedAt: 0, lastCloudSyncedAt: 0 };
+      }
+    }
+
+    function saveSyncMeta() {
+      localStorage.setItem(SYNC_META_KEY, JSON.stringify(syncMeta));
+    }
+
+    function markLocalChanged(updatedAt = Date.now()) {
+      syncMeta.localUpdatedAt = updatedAt;
+      saveSyncMeta();
+      return updatedAt;
+    }
+
+    function markCloudSynced(updatedAt = Date.now()) {
+      syncMeta.localUpdatedAt = updatedAt;
+      syncMeta.lastCloudSyncedAt = updatedAt;
+      saveSyncMeta();
+      return updatedAt;
     }
 
     function settingsWithLocalOnly(settings = {}) {
@@ -2479,7 +2519,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
     }
 
-    function applyLoadedState(nextState, { persistLocal = true } = {}) {
+    function applyLoadedState(nextState, { persistLocal = true, remoteUpdatedAt = 0 } = {}) {
       const normalized = normalizeImportedState(nextState);
       state.templates = normalized.templates;
       state.days = normalized.days;
@@ -2488,6 +2528,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       renderAll();
       if (persistLocal) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+      if (remoteUpdatedAt) {
+        markCloudSynced(remoteUpdatedAt);
       }
     }
 
@@ -2505,7 +2548,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         }
         const cloudState = await cloudStorage.loadUserState();
         isApplyingRemoteState = true;
-        applyLoadedState(cloudState);
+        applyLoadedState(cloudState, { remoteUpdatedAt: cloudStorage.lastRemoteUpdatedAt });
         isApplyingRemoteState = false;
         updateCloudUI("online", "云端数据已加载");
       } catch (err) {
@@ -2590,6 +2633,69 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       clearTimeout(cloudSaveTimer);
       await cloudStorage.saveUserState(state);
       updateCloudUI("online", successMessage);
+    }
+
+    async function syncCloudNow() {
+      if (!cloudStorage.isConfigured()) {
+        toast("CloudBase 尚未配置，无法同步云端");
+        return;
+      }
+      if (!cloudStorage.user) {
+        toast("请先登录 CloudBase 账号");
+        return;
+      }
+
+      clearTimeout(cloudSaveTimer);
+      updateCloudUI("offline", "正在检查云端版本...");
+      const remoteState = await cloudStorage.loadUserState();
+      const remoteAt = Number(cloudStorage.lastRemoteUpdatedAt) || 0;
+      const localAt = Number(syncMeta.localUpdatedAt) || 0;
+      const lastSyncedAt = Number(syncMeta.lastCloudSyncedAt) || 0;
+      const hasLocalChanges = localAt > lastSyncedAt;
+      const hasRemoteChanges = remoteAt > lastSyncedAt;
+
+      if (hasLocalChanges && hasRemoteChanges) {
+        const loadRemote = confirm(
+          "云端和本机都有未同步更新。\n\n" +
+          "点击“确定”：加载云端数据，覆盖本机文字数据。\n" +
+          "点击“取消”：上传本机数据，覆盖云端文字数据。\n\n" +
+          "照片仍只保存在各自设备。"
+        );
+        if (loadRemote) {
+          applyRemoteState(remoteState, remoteAt);
+          updateCloudUI("online", "已加载云端最新数据");
+          toast("已加载云端最新数据");
+          return;
+        }
+        await cloudStorage.saveUserState(state);
+        updateCloudUI("online", "本机数据已覆盖云端");
+        toast("本机数据已覆盖云端");
+        return;
+      }
+
+      if (remoteAt > localAt) {
+        applyRemoteState(remoteState, remoteAt);
+        updateCloudUI("online", "已加载云端最新数据");
+        toast("已加载云端最新数据");
+        return;
+      }
+
+      if (localAt > remoteAt || hasLocalChanges) {
+        await cloudStorage.saveUserState(state);
+        updateCloudUI("online", "本机更新已上传云端");
+        toast("本机更新已上传云端");
+        return;
+      }
+
+      markCloudSynced(Math.max(remoteAt, localAt, lastSyncedAt));
+      updateCloudUI("online", "本机和云端已是最新");
+      toast("本机和云端已是最新");
+    }
+
+    function applyRemoteState(remoteState, remoteAt) {
+      isApplyingRemoteState = true;
+      applyLoadedState(remoteState, { remoteUpdatedAt: remoteAt });
+      isApplyingRemoteState = false;
     }
 
     function formatCloudError(err, fallback = "未知错误") {
@@ -3060,7 +3166,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           await cloudStorage.login(username, password);
           const cloudState = await cloudStorage.loadUserState();
           isApplyingRemoteState = true;
-          applyLoadedState(cloudState);
+          applyLoadedState(cloudState, { remoteUpdatedAt: cloudStorage.lastRemoteUpdatedAt });
           isApplyingRemoteState = false;
           els.cloudPassword.value = "";
           updateCloudUI("online", "云端数据已加载");
@@ -3089,8 +3195,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
       els.cloudSyncNowBtn.addEventListener("click", async () => {
         try {
-          await saveCloudNow("云端已同步");
-          toast("云端已同步");
+          await syncCloudNow();
         } catch (err) {
           console.error("Manual cloud sync failed:", err);
           updateCloudUI("error", err.message || "云端同步失败");
@@ -3332,6 +3437,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     function saveState() {
+      if (!isApplyingRemoteState) {
+        markLocalChanged();
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       scheduleCloudSave();
     }
@@ -3395,7 +3503,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       try {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(LOCAL_SETTINGS_KEY);
+        localStorage.removeItem(SYNC_META_KEY);
         localSettings = {};
+        syncMeta = { localUpdatedAt: 0, lastCloudSyncedAt: 0 };
         if (clearImages) {
           if (imageDB) {
             imageDB.close();
