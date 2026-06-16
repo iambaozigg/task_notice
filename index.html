@@ -132,6 +132,82 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       color: var(--text);
     }
 
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cloud-card {
+      min-width: min(100%, 360px);
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 6px 18px rgba(38, 49, 35, 0.07);
+    }
+
+    .cloud-row,
+    .cloud-login {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cloud-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .cloud-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9aa196;
+    }
+
+    .cloud-dot.online {
+      background: var(--primary);
+    }
+
+    .cloud-dot.error {
+      background: var(--danger);
+    }
+
+    .cloud-login input {
+      width: 132px;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 8px;
+      background: #fff;
+    }
+
+    .cloud-user {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .cloud-user-name {
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.85fr);
@@ -1016,6 +1092,27 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       display: inline-block;
     }
 
+    .missing-image {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 96px;
+      min-height: 48px;
+      padding: 6px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .image-preview-grid .missing-image {
+      width: 120px;
+      height: 64px;
+    }
+
     .image-preview-grid .thumb-remove {
       position: absolute;
       top: -6px;
@@ -1047,6 +1144,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       object-fit: cover;
       cursor: pointer;
       border: 1px solid var(--line);
+    }
+
+    .task-images .missing-image {
+      cursor: default;
+    }
+
+    .viewer-missing {
+      max-width: min(420px, 84vw);
+      padding: 18px;
+      border: 1px dashed rgba(255, 255, 255, 0.35);
+      border-radius: 8px;
+      color: rgba(255, 255, 255, 0.82);
+      text-align: center;
+      line-height: 1.6;
     }
 
     .fullscreen-viewer {
@@ -1128,11 +1239,29 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           <p class="ai-quote" id="aiQuote"></p>
         </div>
       </div>
-      <button class="btn ai-btn" id="analysisBtn" type="button" title="AI 打卡分析">📊 AI 分析</button>
-      <label class="today-picker">
-        <span>日期</span>
-        <input id="dateInput" type="date">
-      </label>
+      <div class="top-actions">
+        <div class="cloud-card" id="cloudCard">
+          <div class="cloud-status">
+            <span class="cloud-dot" id="cloudStatusDot"></span>
+            <span id="cloudStatusText">云同步未登录</span>
+          </div>
+          <form class="cloud-login" id="cloudLoginForm">
+            <input id="cloudEmail" type="text" autocomplete="username" placeholder="CloudBase 用户名">
+            <input id="cloudPassword" type="password" autocomplete="current-password" placeholder="密码">
+            <button class="btn primary" id="cloudLoginBtn" type="submit">登录同步</button>
+          </form>
+          <div class="cloud-user" id="cloudUserBox" hidden>
+            <span class="cloud-user-name" id="cloudUserName"></span>
+            <button class="btn" id="cloudSyncNowBtn" type="button">立即同步</button>
+            <button class="btn" id="cloudLogoutBtn" type="button">退出</button>
+          </div>
+        </div>
+        <button class="btn ai-btn" id="analysisBtn" type="button" title="AI 打卡分析">📊 AI 分析</button>
+        <label class="today-picker">
+          <span>日期</span>
+          <input id="dateInput" type="date">
+        </label>
+      </div>
     </header>
 
     <section class="layout">
@@ -1351,17 +1480,18 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               </div>
               <div class="guide-section">
                 <h3>数据导入</h3>
-                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">支持导入 ZIP 包（自动还原图片）或旧格式 JSON 文件。导入会替换当前所有数据。</p>
+                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">支持导入 ZIP 包（自动还原当前设备图片）或旧格式 JSON 文件。登录后导入会覆盖当前账号的云端文字数据，照片不会同步到其他设备。</p>
                 <div class="toolbar" style="margin-top: 10px;">
                   <button class="btn" id="importDataBtn" type="button">导入数据</button>
                   <input id="importFileInput" type="file" accept=".zip,.json" hidden>
                 </div>
               </div>
               <div class="guide-section">
-                <h3>清除数据</h3>
-                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">永久删除所有任务模板、打卡记录和图片，此操作不可恢复。</p>
+                <h3>缓存与云端数据</h3>
+                <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">清除本机缓存不会删除 CloudBase 云端数据；删除云端数据只影响当前登录账号，需要强确认。</p>
                 <div class="toolbar" style="margin-top: 10px;">
-                  <button class="btn danger" id="clearDataBtn" type="button">清除所有数据</button>
+                  <button class="btn" id="clearDataBtn" type="button">清除本机缓存</button>
+                  <button class="btn danger" id="deleteCloudDataBtn" type="button">删除云端数据</button>
                 </div>
               </div>
             </div>
@@ -1555,6 +1685,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button class="viewer-close" id="viewerClose" type="button" aria-label="关闭">×</button>
     <button class="viewer-nav viewer-prev" id="viewerPrev" type="button" aria-label="上一张">‹</button>
     <img id="viewerImage" alt="图片查看">
+    <div class="viewer-missing" id="viewerMissing" hidden>照片仅保存在原设备，本设备不可见。</div>
     <button class="viewer-nav viewer-next" id="viewerNext" type="button" aria-label="下一张">›</button>
     <div class="viewer-counter" id="viewerCounter"></div>
   </div>
@@ -1812,9 +1943,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         img.className = "thumb";
         img.alt = "预览";
         getImageFromDB(id).then((record) => {
-          if (record) img.src = URL.createObjectURL(record.blob);
+          if (record) {
+            img.src = URL.createObjectURL(record.blob);
+          } else {
+            img.replaceWith(createMissingImagePlaceholder(id));
+          }
         }).catch(() => {
-          img.alt = "加载失败";
+          img.replaceWith(createMissingImagePlaceholder(id));
         });
 
         const removeBtn = document.createElement("button");
@@ -1833,6 +1968,14 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         wrapper.appendChild(removeBtn);
         container.appendChild(wrapper);
       });
+    }
+
+    function createMissingImagePlaceholder(id) {
+      const placeholder = document.createElement("span");
+      placeholder.className = "missing-image";
+      placeholder.dataset.imgId = id;
+      placeholder.textContent = "照片仅保存在原设备，本设备不可见";
+      return placeholder;
     }
 
     function renderTaskImages(imageIds, containerClass) {
@@ -1858,9 +2001,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           if (record) {
             img.src = URL.createObjectURL(record.blob);
             img.dataset.loaded = "true";
+          } else {
+            img.replaceWith(createMissingImagePlaceholder(id));
           }
         } catch (err) {
           console.warn("Failed to load thumbnail:", err);
+          img.replaceWith(createMissingImagePlaceholder(id));
         }
       });
 
@@ -1895,8 +2041,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const record = await getImageFromDB(id);
       if (record) {
         els.viewerImage.src = URL.createObjectURL(record.blob);
+        els.viewerImage.hidden = false;
+        els.viewerMissing.hidden = true;
       } else {
         els.viewerImage.src = "";
+        els.viewerImage.hidden = true;
+        els.viewerMissing.hidden = false;
       }
       els.viewerCounter.textContent = `${viewerIndex + 1} / ${viewerImages.length}`;
       els.viewerPrev.style.display = viewerImages.length > 1 ? "block" : "none";
@@ -1909,12 +2059,45 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
       els.fullscreenViewer.classList.remove("active");
       els.viewerImage.src = "";
+      els.viewerImage.hidden = false;
+      els.viewerMissing.hidden = true;
       viewerImages = [];
       viewerIndex = 0;
     }
 
     const STORAGE_KEY = "daily-checkin-v1";
+    const LOCAL_SETTINGS_KEY = "daily-checkin-local-settings-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
+    const CLOUD_CONFIG = {
+      enabled: true,
+      envId: "task-notice-d9g6utg02c3cdbca4",
+      region: "ap-shanghai",
+      collection: "user_states"
+    };
+    const CLOUD_SDK_CANDIDATES = [
+      { type: "full", urls: ["./vendor/cloudbase.full.js"] },
+      { type: "full", urls: ["https://static.cloudbase.net/cloudbase-js-sdk/2.28.6/cloudbase.full.js"] },
+      {
+        type: "modules",
+        urls: [
+          "./vendor/cloudbase.js",
+          "./vendor/cloudbase.auth.js",
+          "./vendor/cloudbase.database.js"
+        ]
+      },
+      {
+        type: "modules",
+        urls: [
+          "https://static.cloudbase.net/cloudbase-js-sdk/2.28.6/cloudbase.js",
+          "https://static.cloudbase.net/cloudbase-js-sdk/2.28.6/cloudbase.auth.js",
+          "https://static.cloudbase.net/cloudbase-js-sdk/2.28.6/cloudbase.database.js"
+        ]
+      }
+    ];
+    const CLOUD_SAVE_DEBOUNCE_MS = 1200;
+    let cloudSaveTimer = null;
+    let isApplyingRemoteState = false;
+    let cloudSDKModulesLoaded = false;
     const defaultTemplates = [
       { id: uid(), name: "晨间整理", category: "生活", repeat: "daily", note: "规划今天最重要的三件事", images: [] },
       { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "", images: [] },
@@ -1938,6 +2121,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       cachedSuggestion: ""
     };
 
+    let localSettings = loadLocalSettings();
     const state = loadState();
     let selectedDate = formatDate(new Date());
     let visibleMonth = selectedDate.slice(0, 7);
@@ -1974,6 +2158,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       exportEndDate: document.querySelector("#exportEndDate"),
       cancelExportBtn: document.querySelector("#cancelExportBtn"),
       clearDataBtn: document.querySelector("#clearDataBtn"),
+      deleteCloudDataBtn: document.querySelector("#deleteCloudDataBtn"),
       templatePanel: document.querySelector("#templatePanel"),
       historyPanel: document.querySelector("#historyPanel"),
       settingsPanel: document.querySelector("#settingsPanel"),
@@ -2002,6 +2187,17 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       generateWeeklyBtn: document.querySelector("#generateWeeklyBtn"),
       generateDailySuggestionBtn: document.querySelector("#generateDailySuggestionBtn"),
       aiQuote: document.querySelector("#aiQuote"),
+      cloudCard: document.querySelector("#cloudCard"),
+      cloudStatusDot: document.querySelector("#cloudStatusDot"),
+      cloudStatusText: document.querySelector("#cloudStatusText"),
+      cloudLoginForm: document.querySelector("#cloudLoginForm"),
+      cloudEmail: document.querySelector("#cloudEmail"),
+      cloudPassword: document.querySelector("#cloudPassword"),
+      cloudLoginBtn: document.querySelector("#cloudLoginBtn"),
+      cloudUserBox: document.querySelector("#cloudUserBox"),
+      cloudUserName: document.querySelector("#cloudUserName"),
+      cloudSyncNowBtn: document.querySelector("#cloudSyncNowBtn"),
+      cloudLogoutBtn: document.querySelector("#cloudLogoutBtn"),
       templateCameraBtn: document.querySelector("#templateCameraBtn"),
       templateCameraInput: document.querySelector("#templateCameraInput"),
       taskCameraBtn: document.querySelector("#taskCameraBtn"),
@@ -2035,13 +2231,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       toast: document.querySelector("#toast"),
       fullscreenViewer: document.querySelector("#fullscreenViewer"),
       viewerImage: document.querySelector("#viewerImage"),
+      viewerMissing: document.querySelector("#viewerMissing"),
       viewerClose: document.querySelector("#viewerClose"),
       viewerPrev: document.querySelector("#viewerPrev"),
       viewerNext: document.querySelector("#viewerNext"),
       viewerCounter: document.querySelector("#viewerCounter"),
     };
-
-    init();
 
     function init() {
       initImageDB()
@@ -2057,7 +2252,324 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       renderSettings();
       renderAll();
       loadDailyQuote();
+      initCloudSync();
     }
+
+    const cloudStorage = {
+      app: null,
+      auth: null,
+      db: null,
+      user: null,
+      docId: null,
+      initialized: false,
+
+      isConfigured() {
+        return CLOUD_CONFIG.enabled && CLOUD_CONFIG.envId && CLOUD_CONFIG.envId !== "your-cloudbase-env-id";
+      },
+
+      async init() {
+        if (!this.isConfigured()) {
+          throw new Error("CloudBase 尚未配置 envId");
+        }
+        await ensureCloudBaseSDK();
+        if (this.initialized) return this.user;
+        this.app = window.cloudbase.init({
+          env: CLOUD_CONFIG.envId,
+          region: CLOUD_CONFIG.region
+        });
+        this.auth = typeof this.app.auth === "function" ? this.app.auth() : this.app.auth;
+        this.db = this.app.database();
+        this.initialized = true;
+        await this.getCurrentUser();
+        return this.user;
+      },
+
+      async login(username, password) {
+        await this.init();
+        const { data, error } = await this.auth.signInWithPassword({ username, password });
+        if (error) throw error;
+        this.user = data?.user || data?.session?.user || await this.getCurrentUser();
+        return this.user;
+      },
+
+      async logout() {
+        if (!this.initialized) return;
+        await this.auth.signOut();
+        this.user = null;
+        this.docId = null;
+      },
+
+      async getCurrentUser() {
+        if (!this.auth) return null;
+        const { data, error } = await this.auth.getSession();
+        if (error) throw error;
+        this.user = data?.session?.user || data?.user || null;
+        return this.user;
+      },
+
+      getCurrentUserId() {
+        const user = this.user;
+        return user?.uid || user?.userId || user?.sub || user?._id || user?.id || user?.email || "";
+      },
+
+      assertLoggedIn() {
+        const owner = this.getCurrentUserId();
+        if (!owner) throw new Error("请先登录 CloudBase 账号");
+        return owner;
+      },
+
+      async loadUserState() {
+        await this.init();
+        const owner = this.assertLoggedIn();
+        const result = await this.db.collection(CLOUD_CONFIG.collection).where({ owner }).limit(1).get();
+        const docs = result?.data || [];
+        if (!docs.length) {
+          const initialData = toCloudState(state);
+          await this.db.collection(CLOUD_CONFIG.collection).doc(owner).set({
+            owner,
+            data: initialData,
+            version: 1,
+            updatedAt: Date.now()
+          });
+          this.docId = owner;
+          return initialData;
+        }
+        const doc = docs[0];
+        this.docId = doc._id || owner;
+        if (!isValidCloudData(doc.data)) {
+          throw new Error("云端数据格式异常，已保留本机数据");
+        }
+        return doc.data;
+      },
+
+      async saveUserState(sourceState) {
+        await this.init();
+        const owner = this.assertLoggedIn();
+        const docId = this.docId || owner;
+        await this.db.collection(CLOUD_CONFIG.collection).doc(docId).set({
+          owner,
+          data: toCloudState(sourceState),
+          version: 1,
+          updatedAt: Date.now()
+        });
+        this.docId = docId;
+      },
+
+      async deleteUserState() {
+        await this.init();
+        const owner = this.assertLoggedIn();
+        const docId = this.docId || owner;
+        await this.db.collection(CLOUD_CONFIG.collection).doc(docId).remove();
+        this.docId = null;
+      }
+    };
+
+    function loadLocalSettings() {
+      try {
+        return JSON.parse(localStorage.getItem(LOCAL_SETTINGS_KEY)) || {};
+      } catch (err) {
+        console.warn("Failed to load local settings:", err);
+        return {};
+      }
+    }
+
+    function saveLocalSettings() {
+      localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(localSettings || {}));
+    }
+
+    function settingsWithLocalOnly(settings = {}) {
+      return { ...defaultSettings, ...settings, aiApiKey: localSettings.aiApiKey || "" };
+    }
+
+    function stripSensitiveSettings(settings = {}) {
+      const { aiApiKey, ...safeSettings } = { ...defaultSettings, ...settings };
+      return safeSettings;
+    }
+
+    function toCloudState(sourceState) {
+      return {
+        templates: JSON.parse(JSON.stringify(sourceState.templates || [])),
+        days: JSON.parse(JSON.stringify(sourceState.days || {})),
+        settings: stripSensitiveSettings(sourceState.settings || {})
+      };
+    }
+
+    function isValidCloudData(data) {
+      return data && Array.isArray(data.templates) && data.days && typeof data.days === "object";
+    }
+
+    function loadScriptOnce(url, timeoutMs = 12000) {
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-cloudbase-sdk="${url}"]`);
+        if (existing) {
+          if (existing.dataset.loaded === "true") {
+            resolve();
+            return;
+          }
+          existing.addEventListener("load", () => resolve(), { once: true });
+          existing.addEventListener("error", () => reject(new Error(url)), { once: true });
+          return;
+        }
+        const script = document.createElement("script");
+        const timer = setTimeout(() => {
+          script.remove();
+          reject(new Error(url));
+        }, timeoutMs);
+        script.src = url;
+        script.async = true;
+        script.dataset.cloudbaseSdk = url;
+        script.onload = () => {
+          clearTimeout(timer);
+          script.dataset.loaded = "true";
+          resolve();
+        };
+        script.onerror = () => {
+          clearTimeout(timer);
+          script.remove();
+          reject(new Error(url));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    async function ensureCloudBaseSDK() {
+      if (cloudSDKModulesLoaded && window.cloudbase) return;
+      const failedUrls = [];
+      for (const candidate of CLOUD_SDK_CANDIDATES) {
+        const candidateFailures = [];
+        for (const url of candidate.urls) {
+          try {
+            await loadScriptOnce(url);
+          } catch (err) {
+            candidateFailures.push(err.message || url);
+            break;
+          }
+        }
+        if (candidateFailures.length) {
+          failedUrls.push(...candidateFailures);
+          continue;
+        }
+        try {
+          if (candidate.type === "modules") {
+            registerCloudBaseModules();
+          }
+          if (window.cloudbase) {
+            cloudSDKModulesLoaded = true;
+            return;
+          }
+        } catch (err) {
+          failedUrls.push(err.message || "模块注册失败");
+        }
+      }
+      throw new Error("CloudBase SDK 加载失败，请检查 CloudBase v2.28.6 SDK 地址或本地 vendor 文件是否可访问。失败地址：" + failedUrls.join(" | "));
+    }
+
+    function registerCloudBaseModules() {
+      if (!window.cloudbase) {
+        throw new Error("cloudbase.js 未成功加载");
+      }
+      if (typeof window.registerAuth === "function") {
+        window.registerAuth(window.cloudbase);
+      }
+      if (typeof window.registerDatabase === "function") {
+        window.registerDatabase(window.cloudbase);
+      }
+    }
+
+    function applyLoadedState(nextState, { persistLocal = true } = {}) {
+      const normalized = normalizeImportedState(nextState);
+      state.templates = normalized.templates;
+      state.days = normalized.days;
+      state.settings = settingsWithLocalOnly(normalized.settings);
+      ensureDay(selectedDate);
+      renderAll();
+      if (persistLocal) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+    }
+
+    async function initCloudSync() {
+      if (!cloudStorage.isConfigured()) {
+        updateCloudUI("offline", "CloudBase 未配置，当前仅使用本机数据");
+        return;
+      }
+      try {
+        updateCloudUI("offline", "正在检查 CloudBase 登录状态...");
+        await cloudStorage.init();
+        if (!cloudStorage.user) {
+          updateCloudUI("offline", "云同步未登录");
+          return;
+        }
+        const cloudState = await cloudStorage.loadUserState();
+        isApplyingRemoteState = true;
+        applyLoadedState(cloudState);
+        isApplyingRemoteState = false;
+        updateCloudUI("online", "云端数据已加载");
+      } catch (err) {
+        isApplyingRemoteState = false;
+        console.warn("Cloud init failed:", err);
+        updateCloudUI("error", err.message || "云同步初始化失败");
+      }
+    }
+
+    function updateCloudUI(status, message) {
+      if (!els.cloudStatusText) return;
+      const user = cloudStorage.user;
+      els.cloudStatusText.textContent = message;
+      els.cloudStatusDot.classList.toggle("online", status === "online");
+      els.cloudStatusDot.classList.toggle("error", status === "error");
+      els.cloudLoginForm.hidden = !!user || !cloudStorage.isConfigured();
+      els.cloudUserBox.hidden = !user;
+      els.cloudUserName.textContent = user ? (user.email || user.nickName || cloudStorage.getCurrentUserId()) : "";
+    }
+
+    function scheduleCloudSave() {
+      if (isApplyingRemoteState || !cloudStorage.isConfigured() || !cloudStorage.user) return;
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(() => {
+        cloudStorage.saveUserState(state)
+          .then(() => updateCloudUI("online", "云端已同步"))
+          .catch((err) => {
+            console.warn("Cloud save failed:", err);
+            updateCloudUI("error", err.message || "云端同步失败，本机数据已保留");
+            toast("云端同步失败，本机数据已保留");
+          });
+      }, CLOUD_SAVE_DEBOUNCE_MS);
+    }
+
+    async function saveCloudNow(successMessage = "云端已同步") {
+      if (!cloudStorage.isConfigured()) {
+        toast("CloudBase 尚未配置，已保存到本机");
+        return;
+      }
+      if (!cloudStorage.user) {
+        toast("未登录 CloudBase，已保存到本机");
+        return;
+      }
+      clearTimeout(cloudSaveTimer);
+      await cloudStorage.saveUserState(state);
+      updateCloudUI("online", successMessage);
+    }
+
+    function formatCloudError(err, fallback = "未知错误") {
+      if (!err) return fallback;
+      const parts = [];
+      const code = err.code || err.errorCode || err.errCode;
+      const message = err.message || err.errorMessage || err.errMsg;
+      if (code) parts.push(`code=${code}`);
+      if (message) parts.push(`message=${message}`);
+      if (!parts.length && typeof err === "string") parts.push(err);
+      if (!parts.length) {
+        try {
+          parts.push(JSON.stringify(err));
+        } catch {
+          parts.push(fallback);
+        }
+      }
+      return parts.join("；");
+    }
+
+    init();
 
     async function callAI(systemPrompt, userPrompt) {
       const { aiEndpoint, aiApiKey, aiModel } = state.settings;
@@ -2493,6 +3005,58 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       bindImageUpload("templateImageUpload", "templateImageInput", "templateImagePreview", "templateImages");
       bindRichEditors();
 
+      els.cloudLoginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = els.cloudEmail.value.trim();
+        const password = els.cloudPassword.value;
+        if (!username || !password) {
+          toast("请输入 CloudBase 用户名和密码");
+          return;
+        }
+        try {
+          els.cloudLoginBtn.disabled = true;
+          updateCloudUI("offline", "正在登录 CloudBase...");
+          await cloudStorage.login(username, password);
+          const cloudState = await cloudStorage.loadUserState();
+          isApplyingRemoteState = true;
+          applyLoadedState(cloudState);
+          isApplyingRemoteState = false;
+          els.cloudPassword.value = "";
+          updateCloudUI("online", "云端数据已加载");
+          toast("CloudBase 登录成功");
+        } catch (err) {
+          isApplyingRemoteState = false;
+          console.error("Cloud login failed:", err);
+          const detail = formatCloudError(err);
+          updateCloudUI("error", detail);
+          toast("CloudBase 登录失败：" + detail, 6000);
+        } finally {
+          els.cloudLoginBtn.disabled = false;
+        }
+      });
+
+      els.cloudLogoutBtn.addEventListener("click", async () => {
+        try {
+          await cloudStorage.logout();
+          updateCloudUI("offline", "云同步未登录");
+          toast("已退出 CloudBase，同步已停止");
+        } catch (err) {
+          console.error("Cloud logout failed:", err);
+          toast("退出失败：" + (err.message || "未知错误"));
+        }
+      });
+
+      els.cloudSyncNowBtn.addEventListener("click", async () => {
+        try {
+          await saveCloudNow("云端已同步");
+          toast("云端已同步");
+        } catch (err) {
+          console.error("Manual cloud sync failed:", err);
+          updateCloudUI("error", err.message || "云端同步失败");
+          toast("云端同步失败，本机数据已保留");
+        }
+      });
+
       // 拍照按钮事件
       els.templateCameraBtn.addEventListener("click", () => els.templateCameraInput.click());
       els.templateCameraInput.addEventListener("change", () => {
@@ -2532,7 +3096,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           toast("导入出错：" + (err.message || "未知错误"));
         });
       });
-      els.clearDataBtn.addEventListener("click", clearAllData);
+      els.clearDataBtn.addEventListener("click", clearLocalCache);
+      els.deleteCloudDataBtn.addEventListener("click", deleteCloudData);
 
       els.analysisBtn.addEventListener("click", () => {
         els.analysisContent.textContent = "点击下方按钮生成分析报告";
@@ -2564,14 +3129,18 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           imageQuality: Number(els.imageQuality.value) || 0.8,
           imageMaxWidth: Math.min(4096, Math.max(480, Number(els.imageMaxWidth.value) || 1920)),
           aiEndpoint: els.aiEndpoint.value.trim(),
-          aiApiKey: els.aiApiKey.value.trim(),
           aiModel: els.aiModel.value.trim(),
           aiStyle: els.aiStyle.value,
           aiCustomPrompt: els.aiCustomPrompt.value.trim(),
           aiCustomQuotePrompt: els.aiCustomQuotePrompt.value.trim(),
           lastQuoteDate: state.settings.lastQuoteDate || "",
-          cachedQuote: state.settings.cachedQuote || ""
+          cachedQuote: state.settings.cachedQuote || "",
+          lastSuggestionDate: state.settings.lastSuggestionDate || "",
+          cachedSuggestion: state.settings.cachedSuggestion || ""
         };
+        localSettings.aiApiKey = els.aiApiKey.value.trim();
+        saveLocalSettings();
+        state.settings.aiApiKey = localSettings.aiApiKey;
         saveState();
         renderSettings();
         toast("个性设置已保存");
@@ -2708,7 +3277,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
         if (saved && Array.isArray(saved.templates) && saved.days) {
-          saved.settings = { ...defaultSettings, ...(saved.settings || {}) };
+          saved.settings = settingsWithLocalOnly(saved.settings || {});
           saved.templates.forEach((t) => { if (!t.images) t.images = []; });
           Object.values(saved.days).forEach((day) => {
             (day.tasks || []).forEach((t) => { if (!t.images) t.images = []; });
@@ -2718,11 +3287,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       } catch (error) {
         console.warn("Load failed", error);
       }
-      return { templates: defaultTemplates, days: {}, settings: { ...defaultSettings } };
+      return { templates: [...defaultTemplates], days: {}, settings: settingsWithLocalOnly(defaultSettings) };
     }
 
     function saveState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      scheduleCloudSave();
     }
 
     function openExportDialog() {
@@ -2777,27 +3347,54 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       return map;
     }
 
-    async function clearAllData() {
-      if (!confirm("确定要清除所有数据吗？\n\n这将删除所有任务模板、打卡记录和图片，且无法恢复。")) return;
-      if (!confirm("再次确认：此操作不可撤销！\n\n所有数据将被永久删除，确定继续吗？")) return;
+    async function clearLocalCache() {
+      if (!confirm("确定要清除本机缓存吗？\n\n这只会删除当前浏览器的 localStorage 缓存，不会删除 CloudBase 云端数据。")) return;
+      const clearImages = confirm("是否同时清除本机 IndexedDB 中的照片？\n\n照片不会同步到云端，清除后只能从本机 ZIP 备份恢复。");
 
       try {
         localStorage.removeItem(STORAGE_KEY);
-        if (imageDB) {
-          imageDB.close();
-          imageDB = null;
+        localStorage.removeItem(LOCAL_SETTINGS_KEY);
+        localSettings = {};
+        if (clearImages) {
+          if (imageDB) {
+            imageDB.close();
+            imageDB = null;
+          }
+          imageDBPromise = null;
+          await new Promise((resolve, reject) => {
+            const req = indexedDB.deleteDatabase(IMAGE_DB_NAME);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+            req.onblocked = () => resolve();
+          });
         }
-        imageDBPromise = null;
-        await new Promise((resolve, reject) => {
-          const req = indexedDB.deleteDatabase(IMAGE_DB_NAME);
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject(req.error);
-          req.onblocked = () => resolve();
-        });
+        toast("本机缓存已清除，云端数据未删除；刷新后可重新从云端加载");
       } catch (err) {
-        console.warn("清除数据时出错:", err);
+        console.warn("清除本机缓存时出错", err);
+        toast("清除本机缓存失败：" + (err.message || "未知错误"));
       }
-      location.reload();
+    }
+
+    async function deleteCloudData() {
+      if (!cloudStorage.user) {
+        toast("请先登录 CloudBase 账号");
+        return;
+      }
+      if (!confirm("删除云端数据只会删除当前登录账号的 CloudBase 打卡文字数据，本机缓存和照片不会自动删除。确定继续吗？")) return;
+      const typed = prompt("请输入“删除云端数据”以确认：");
+      if (typed !== "删除云端数据") {
+        toast("已取消删除云端数据");
+        return;
+      }
+      try {
+        await cloudStorage.deleteUserState();
+        updateCloudUI("online", "云端数据已删除，本机数据仍保留");
+        toast("云端数据已删除");
+      } catch (err) {
+        console.error("Delete cloud data failed:", err);
+        updateCloudUI("error", err.message || "删除云端数据失败");
+        toast("删除云端数据失败：" + (err.message || "未知错误"));
+      }
     }
 
     async function exportData() {
@@ -2822,7 +3419,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           app: "daily-checkin",
           version: 1,
           exportedAt: new Date().toISOString(),
-          data: state
+          data: {
+            ...state,
+            settings: stripSensitiveSettings(state.settings)
+          }
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -2861,7 +3461,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             }
           ])
         ),
-        settings: state.settings
+        settings: stripSensitiveSettings(state.settings)
       };
 
       const dataJson = {
@@ -2938,7 +3538,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         return;
       }
 
-      if (!confirm("导入后会替换当前浏览器里的所有打卡数据，继续吗？")) return;
+      if (!confirm("导入将覆盖当前账号的云端打卡数据；照片只会导入到当前设备，不会同步到其他设备。\n\n确定继续吗？")) return;
 
       // 还原图片到 IndexedDB
       const imgFolder = zip.folder("images");
@@ -2991,9 +3591,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       // 覆盖 state
       state.templates = importedState.templates;
       state.days = importedState.days;
+      state.settings = settingsWithLocalOnly(importedState.settings || {});
       saveState();
       ensureDay(selectedDate);
       renderAll();
+      await saveCloudNow("导入数据已同步到云端");
       toast("数据导入成功");
     }
 
@@ -3015,7 +3617,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       // 旧格式 JSON 导入
       toast("正在读取 JSON 文件...");
       const reader = new FileReader();
-      reader.addEventListener("load", () => {
+      reader.addEventListener("load", async () => {
         try {
           const parsed = JSON.parse(String(reader.result || "{}"));
           const importedState = normalizeImportedState(parsed);
@@ -3023,13 +3625,15 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             toast("导入失败：文件格式不正确");
             return;
           }
-          if (!confirm("导入后会替换当前浏览器里的所有打卡数据，继续吗？")) return;
+          if (!confirm("导入将覆盖当前账号的云端打卡数据；照片只会导入到当前设备，不会同步到其他设备。\n\n确定继续吗？")) return;
 
           state.templates = importedState.templates;
           state.days = importedState.days;
+          state.settings = settingsWithLocalOnly(importedState.settings || {});
           saveState();
           ensureDay(selectedDate);
           renderAll();
+          await saveCloudNow("导入数据已同步到云端");
           toast("数据导入成功");
         } catch (error) {
           console.error("Import failed", error);
@@ -3501,7 +4105,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     function renderSettings() {
-      state.settings = { ...defaultSettings, ...(state.settings || {}) };
+      state.settings = settingsWithLocalOnly(state.settings || {});
       const ownerName = state.settings.ownerName.trim();
       const motto = state.settings.motto.trim() || defaultSettings.motto;
       const title = ownerName ? `${ownerName}的日程打卡` : "日程打卡";
@@ -3873,11 +4477,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         .replaceAll("'", "&#039;");
     }
 
-    function toast(message) {
+    function toast(message, duration = 1600) {
       els.toast.textContent = message;
       els.toast.classList.add("show");
       clearTimeout(toast.timer);
-      toast.timer = setTimeout(() => els.toast.classList.remove("show"), 1600);
+      toast.timer = setTimeout(() => els.toast.classList.remove("show"), duration);
     }
   </script>
 </body>
