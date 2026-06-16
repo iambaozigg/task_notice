@@ -2330,7 +2330,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         const result = await this.db.collection(CLOUD_CONFIG.collection).where({ owner }).limit(1).get();
         const docs = result?.data || [];
         if (!docs.length) {
-          const initialData = toCloudState(state);
+          const initialData = toCloudState(createInitialUserState({ includeLocalSettings: false }));
           const updatedAt = Date.now();
           await this.db.collection(CLOUD_CONFIG.collection).doc(owner).set({
             owner,
@@ -2427,6 +2427,17 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     function stripSensitiveSettings(settings = {}) {
       const { aiApiKey, ...safeSettings } = { ...defaultSettings, ...settings };
       return safeSettings;
+    }
+
+    function createInitialUserState({ includeLocalSettings = true } = {}) {
+      const settings = includeLocalSettings
+        ? settingsWithLocalOnly(defaultSettings)
+        : { ...defaultSettings };
+      return {
+        templates: JSON.parse(JSON.stringify(defaultTemplates)),
+        days: {},
+        settings
+      };
     }
 
     function toCloudState(sourceState) {
@@ -3433,7 +3444,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       } catch (error) {
         console.warn("Load failed", error);
       }
-      return { templates: [...defaultTemplates], days: {}, settings: settingsWithLocalOnly(defaultSettings) };
+      return createInitialUserState();
     }
 
     function saveState() {
