@@ -2261,6 +2261,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       db: null,
       user: null,
       docId: null,
+      loginName: "",
       initialized: false,
 
       isConfigured() {
@@ -2288,6 +2289,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         await this.init();
         const { data, error } = await this.auth.signInWithPassword({ username, password });
         if (error) throw error;
+        this.loginName = username;
         this.user = data?.user || data?.session?.user || await this.getCurrentUser();
         return this.user;
       },
@@ -2297,6 +2299,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         await this.auth.signOut();
         this.user = null;
         this.docId = null;
+        this.loginName = "";
       },
 
       async getCurrentUser() {
@@ -2520,7 +2523,45 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       els.cloudStatusDot.classList.toggle("error", status === "error");
       els.cloudLoginForm.hidden = !!user || !cloudStorage.isConfigured();
       els.cloudUserBox.hidden = !user;
-      els.cloudUserName.textContent = user ? (user.email || user.nickName || cloudStorage.getCurrentUserId()) : "";
+      els.cloudUserName.textContent = user ? `${getGreetingText()}，${getCloudDisplayName(user)}` : "";
+      els.cloudUserName.title = user ? getCloudDisplayName(user, { includeId: true }) : "";
+    }
+
+    function getGreetingText(date = new Date()) {
+      const hour = date.getHours();
+      if (hour < 6) return "夜深了";
+      if (hour < 9) return "早上好";
+      if (hour < 12) return "上午好";
+      if (hour < 14) return "中午好";
+      if (hour < 18) return "下午好";
+      return "晚上好";
+    }
+
+    function getCloudDisplayName(user, options = {}) {
+      const rawName =
+        user?.nickName ||
+        user?.nickname ||
+        user?.name ||
+        user?.displayName ||
+        user?.username ||
+        user?.loginName ||
+        user?.email ||
+        cloudStorage.loginName ||
+        state.settings?.ownerName ||
+        "";
+      const displayName = String(rawName || "").trim();
+      const userId = cloudStorage.getCurrentUserId();
+      if (options.includeId && userId && displayName && displayName !== userId) {
+        return `${displayName}（${userId}）`;
+      }
+      if (displayName) return displayName;
+      return userId ? `用户 ${shortUserId(userId)}` : "已登录";
+    }
+
+    function shortUserId(userId) {
+      const value = String(userId || "");
+      if (value.length <= 10) return value;
+      return `${value.slice(0, 4)}...${value.slice(-4)}`;
     }
 
     function scheduleCloudSave() {
