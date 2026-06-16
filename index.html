@@ -2123,6 +2123,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     };
 
     let localSettings = loadLocalSettings();
+    let activeCloudOwner = "";
     let syncMeta = loadSyncMeta();
     const state = loadState();
     let selectedDate = formatDate(new Date());
@@ -2290,19 +2291,40 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
       async login(username, password) {
         await this.init();
+        clearTimeout(cloudSaveTimer);
+        if (this.user) {
+          await this.logout({ purgeAuthCache: true, silent: true });
+        } else {
+          clearCloudAuthCache();
+        }
         const { data, error } = await this.auth.signInWithPassword({ username, password });
         if (error) throw error;
         this.loginName = username;
         this.user = data?.user || data?.session?.user || await this.getCurrentUser();
+        this.docId = null;
+        setActiveCloudOwner(this.getCurrentUserId());
         return this.user;
       },
 
-      async logout() {
-        if (!this.initialized) return;
-        await this.auth.signOut();
+      async logout({ purgeAuthCache = true, silent = false } = {}) {
+        clearTimeout(cloudSaveTimer);
+        if (!this.initialized) {
+          if (purgeAuthCache) clearCloudAuthCache();
+          setActiveCloudOwner("");
+          return;
+        }
+        try {
+          await this.auth.signOut();
+        } catch (err) {
+          if (!silent) throw err;
+          console.warn("CloudBase silent signOut failed:", err);
+        }
         this.user = null;
         this.docId = null;
         this.loginName = "";
+        this.lastRemoteUpdatedAt = 0;
+        if (purgeAuthCache) clearCloudAuthCache();
+        setActiveCloudOwner("");
       },
 
       async getCurrentUser() {
@@ -2310,6 +2332,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         const { data, error } = await this.auth.getSession();
         if (error) throw error;
         this.user = data?.session?.user || data?.user || null;
+        setActiveCloudOwner(this.getCurrentUserId());
         return this.user;
       },
 
@@ -2390,9 +2413,54 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(localSettings || {}));
     }
 
-    function loadSyncMeta() {
+    function getAccountScopedKey(baseKey, owner = activeCloudOwner) {
+      const normalizedOwner = String(owner || "").trim();
+      return normalizedOwner ? `${baseKey}:${encodeURIComponent(normalizedOwner)}` : baseKey;
+    }
+
+    function getStateStorageKey(owner = activeCloudOwner) {
+      return getAccountScopedKey(STORAGE_KEY, owner);
+    }
+
+    function getSyncMetaStorageKey(owner = activeCloudOwner) {
+      return getAccountScopedKey(SYNC_META_KEY, owner);
+    }
+
+    function setActiveCloudOwner(owner) {
+      activeCloudOwner = String(owner || "").trim();
+      syncMeta = loadSyncMeta();
+    }
+
+    function clearCloudAuthCache() {
+      const env = String(CLOUD_CONFIG.envId || "").toLowerCase();
+      const shouldRemove = (key) => {
+        const normalized = String(key || "").toLowerCase();
+        return (env && normalized.includes(env)) ||
+          normalized.includes("cloudbase") ||
+          normalized.includes("tcb") ||
+          normalized.includes("tencentcloud");
+      };
+      [localStorage, sessionStorage].forEach((storage) => {
+        for (let index = storage.length - 1; index >= 0; index -= 1) {
+          const key = storage.key(index);
+          if (shouldRemove(key)) storage.removeItem(key);
+        }
+      });
+    }
+
+    function removeLocalCacheKeys() {
+      const prefixes = [`${STORAGE_KEY}:`, `${SYNC_META_KEY}:`];
+      for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+        const key = localStorage.key(index);
+        if (key === STORAGE_KEY || key === SYNC_META_KEY || prefixes.some((prefix) => key.startsWith(prefix))) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
+
+    function loadSyncMeta(owner = activeCloudOwner) {
       try {
-        const saved = JSON.parse(localStorage.getItem(SYNC_META_KEY));
+        const saved = JSON.parse(localStorage.getItem(getSyncMetaStorageKey(owner)));
         return {
           localUpdatedAt: Number(saved?.localUpdatedAt) || 0,
           lastCloudSyncedAt: Number(saved?.lastCloudSyncedAt) || 0
@@ -2404,7 +2472,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     function saveSyncMeta() {
-      localStorage.setItem(SYNC_META_KEY, JSON.stringify(syncMeta));
+      localStorage.setItem(getSyncMetaStorageKey(), JSON.stringify(syncMeta));
     }
 
     function markLocalChanged(updatedAt = Date.now()) {
@@ -2538,7 +2606,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       ensureDay(selectedDate);
       renderAll();
       if (persistLocal) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(getStateStorageKey(), JSON.stringify(state));
       }
       if (remoteUpdatedAt) {
         markCloudSynced(remoteUpdatedAt);
@@ -3432,7 +3500,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     function loadState() {
       try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        const saved = JSON.parse(localStorage.getItem(getStateStorageKey()));
         if (saved && Array.isArray(saved.templates) && saved.days) {
           saved.settings = settingsWithLocalOnly(saved.settings || {});
           saved.templates.forEach((t) => { if (!t.images) t.images = []; });
@@ -3451,7 +3519,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       if (!isApplyingRemoteState) {
         markLocalChanged();
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(getStateStorageKey(), JSON.stringify(state));
       scheduleCloudSave();
     }
 
@@ -3512,10 +3580,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const clearImages = confirm("是否同时清除本机 IndexedDB 中的照片？\n\n照片不会同步到云端，清除后只能从本机 ZIP 备份恢复。");
 
       try {
-        localStorage.removeItem(STORAGE_KEY);
+        removeLocalCacheKeys();
         localStorage.removeItem(LOCAL_SETTINGS_KEY);
-        localStorage.removeItem(SYNC_META_KEY);
         localSettings = {};
+        activeCloudOwner = "";
         syncMeta = { localUpdatedAt: 0, lastCloudSyncedAt: 0 };
         if (clearImages) {
           if (imageDB) {
