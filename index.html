@@ -1253,6 +1253,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           <div class="cloud-user" id="cloudUserBox" hidden>
             <span class="cloud-user-name" id="cloudUserName"></span>
             <button class="btn" id="cloudSyncNowBtn" type="button">立即同步</button>
+            <button class="btn" id="cloudSwitchUserBtn" type="button">切换用户</button>
             <button class="btn" id="cloudLogoutBtn" type="button">退出</button>
           </div>
         </div>
@@ -2200,6 +2201,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       cloudUserBox: document.querySelector("#cloudUserBox"),
       cloudUserName: document.querySelector("#cloudUserName"),
       cloudSyncNowBtn: document.querySelector("#cloudSyncNowBtn"),
+      cloudSwitchUserBtn: document.querySelector("#cloudSwitchUserBtn"),
       cloudLogoutBtn: document.querySelector("#cloudLogoutBtn"),
       templateCameraBtn: document.querySelector("#templateCameraBtn"),
       templateCameraInput: document.querySelector("#templateCameraInput"),
@@ -3208,6 +3210,34 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
     }
 
+    async function switchCloudUser() {
+      if (!cloudStorage.user) {
+        updateCloudUI("offline", "请输入要切换的 CloudBase 账号");
+        els.cloudEmail.focus();
+        return;
+      }
+      try {
+        els.cloudSwitchUserBtn.disabled = true;
+        els.cloudLogoutBtn.disabled = true;
+        updateCloudUI("offline", "正在同步并退出当前账号...");
+        await saveCloudNow("当前账号已同步");
+        await cloudStorage.logout();
+        els.cloudEmail.value = "";
+        els.cloudPassword.value = "";
+        updateCloudUI("offline", "请输入要切换的 CloudBase 账号");
+        els.cloudEmail.focus();
+        toast("已退出当前账号，请登录其他账号");
+      } catch (err) {
+        console.error("Cloud switch user failed:", err);
+        const detail = formatCloudError(err, err.message || "未知错误");
+        updateCloudUI("error", "切换用户失败：" + detail);
+        toast("切换用户失败：" + detail, 6000);
+      } finally {
+        els.cloudSwitchUserBtn.disabled = false;
+        els.cloudLogoutBtn.disabled = false;
+      }
+    }
+
     function bindEvents() {
       els.dateInput.addEventListener("change", () => {
         selectedDate = els.dateInput.value || formatDate(new Date());
@@ -3270,6 +3300,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           console.error("Cloud logout failed:", err);
           toast("退出失败：" + (err.message || "未知错误"));
         }
+      });
+
+      els.cloudSwitchUserBtn.addEventListener("click", async () => {
+        await switchCloudUser();
       });
 
       els.cloudSyncNowBtn.addEventListener("click", async () => {
