@@ -805,6 +805,34 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       display: none;
     }
 
+    .weekday-options {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .weekday-option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 38px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .weekday-option input {
+      width: auto;
+      min-height: auto;
+      margin: 0;
+      accent-color: var(--primary);
+    }
+
     .guide {
       display: grid;
       gap: 14px;
@@ -1249,6 +1277,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         white-space: nowrap;
       }
 
+      .weekday-options {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .task {
         grid-template-columns: auto minmax(0, 1fr);
         gap: 10px;
@@ -1629,16 +1661,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 </select>
               </label>
               <label class="field weekday-field" id="templateWeekdayField" hidden>
-                <span>星期几</span>
-                <select id="templateWeekday">
-                  <option value="1">星期一</option>
-                  <option value="2">星期二</option>
-                  <option value="3">星期三</option>
-                  <option value="4">星期四</option>
-                  <option value="5">星期五</option>
-                  <option value="6">星期六</option>
-                  <option value="0">星期日</option>
-                </select>
+                <span>每周哪几天</span>
+                <div class="weekday-options" id="templateWeekdays">
+                  <label class="weekday-option"><input type="checkbox" value="1">周一</label>
+                  <label class="weekday-option"><input type="checkbox" value="2">周二</label>
+                  <label class="weekday-option"><input type="checkbox" value="3">周三</label>
+                  <label class="weekday-option"><input type="checkbox" value="4">周四</label>
+                  <label class="weekday-option"><input type="checkbox" value="5">周五</label>
+                  <label class="weekday-option"><input type="checkbox" value="6">周六</label>
+                  <label class="weekday-option"><input type="checkbox" value="0">周日</label>
+                </div>
               </label>
               <label class="field">
                 <span>任务描述</span>
@@ -2522,7 +2554,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       templateCategory: document.querySelector("#templateCategory"),
       templateRepeat: document.querySelector("#templateRepeat"),
       templateWeekdayField: document.querySelector("#templateWeekdayField"),
-      templateWeekday: document.querySelector("#templateWeekday"),
+      templateWeekdays: document.querySelector("#templateWeekdays"),
       templateNote: document.querySelector("#templateNote"),
       saveTemplateBtn: document.querySelector("#saveTemplateBtn"),
       templateList: document.querySelector("#templateList"),
@@ -3824,6 +3856,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
         templateImages = [];
         els.templateForm.reset();
+        setTemplateWeekdays([1]);
         setRichEditorHTML(els.templateNote, "");
         document.getElementById("templateImagePreview").innerHTML = "";
         updateTemplateWeekdayVisibility();
@@ -4318,7 +4351,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           name: String(template.name || "").trim() || "未命名任务",
           category: template.category || "其他",
           repeat: template.repeat || "daily",
-          weekday: template.repeat === "weekly" ? Number(template.weekday ?? 1) : null,
+          weekday: template.repeat === "weekly" ? getTaskWeekdays(template)[0] : null,
+          weekdays: template.repeat === "weekly" ? getTaskWeekdays(template) : [],
           note: template.note || "",
           images: Array.isArray(template.images) ? template.images : []
         })),
@@ -4976,7 +5010,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         els.templateName.value = task.name;
         els.templateCategory.value = task.category;
         els.templateRepeat.value = task.repeat || "daily";
-        els.templateWeekday.value = String(task.weekday ?? 1);
+        setTemplateWeekdays(getTaskWeekdays(task));
         updateTemplateWeekdayVisibility();
         setRichEditorHTML(els.templateNote, task.note || "");
         templateImages = [...(task.images || [])];
@@ -4991,6 +5025,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           editingTemplateId = null;
           templateImages = [];
           els.templateForm.reset();
+          setTemplateWeekdays([1]);
           document.getElementById("templateImagePreview").innerHTML = "";
           updateTemplateWeekdayVisibility();
           els.saveTemplateBtn.textContent = "添加到每日模板";
@@ -5019,11 +5054,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     function readTemplateForm() {
+      const weekdays = getTemplateWeekdays();
       return {
         name: els.templateName.value.trim(),
         category: els.templateCategory.value,
         repeat: els.templateRepeat.value,
-        weekday: els.templateRepeat.value === "weekly" ? Number(els.templateWeekday.value) : null,
+        weekday: els.templateRepeat.value === "weekly" ? weekdays[0] : null,
+        weekdays: els.templateRepeat.value === "weekly" ? weekdays : [],
         note: getRichEditorHTML(els.templateNote),
         images: []
       };
@@ -5045,7 +5082,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
       if (repeat === "weekly") {
         const day = new Date(`${date}T00:00:00`).getDay();
-        return day === Number(task.weekday ?? 1);
+        return getTaskWeekdays(task).includes(day);
       }
       return true;
     }
@@ -5054,8 +5091,31 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       if (!task.repeat && !task.createdFromTemplate && !task.templateId) return "";
       const repeat = task.repeat || "daily";
       if (repeat === "workday") return "工作日重复";
-      if (repeat === "weekly") return `每周${weekdayLabel(task.weekday ?? 1)}`;
+      if (repeat === "weekly") return `每周${getTaskWeekdays(task).map(weekdayLabel).join("、")}`;
       return "每日重复";
+    }
+
+    function getTaskWeekdays(task) {
+      const source = Array.isArray(task.weekdays) && task.weekdays.length
+        ? task.weekdays
+        : [task.weekday ?? 1];
+      const values = source
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6);
+      return [...new Set(values)].sort((a, b) => (a || 7) - (b || 7));
+    }
+
+    function getTemplateWeekdays() {
+      const checked = [...els.templateWeekdays.querySelectorAll("input[type='checkbox']:checked")]
+        .map((input) => Number(input.value));
+      return checked.length ? checked : [1];
+    }
+
+    function setTemplateWeekdays(values) {
+      const selected = new Set((values && values.length ? values : [1]).map(String));
+      els.templateWeekdays.querySelectorAll("input[type='checkbox']").forEach((input) => {
+        input.checked = selected.has(input.value);
+      });
     }
 
     function weekdayLabel(value) {
@@ -5064,6 +5124,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     function updateTemplateWeekdayVisibility() {
       els.templateWeekdayField.hidden = els.templateRepeat.value !== "weekly";
+      const checkedCount = els.templateWeekdays.querySelectorAll("input[type='checkbox']:checked").length;
+      if (els.templateRepeat.value === "weekly" && !checkedCount) {
+        setTemplateWeekdays([1]);
+      }
     }
 
     function applyStoredTemplateListHeight() {
