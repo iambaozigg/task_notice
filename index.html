@@ -2796,7 +2796,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const prefixes = [`${STORAGE_KEY}:`, `${SYNC_META_KEY}:`];
       for (let index = localStorage.length - 1; index >= 0; index -= 1) {
         const key = localStorage.key(index);
-        if (key === STORAGE_KEY || key === SYNC_META_KEY || prefixes.some((prefix) => key.startsWith(prefix))) {
+        if (key === STORAGE_KEY || key === SYNC_META_KEY || key === AI_ANALYSIS_CACHE_KEY || prefixes.some((prefix) => key.startsWith(prefix))) {
           localStorage.removeItem(key);
         }
       }
@@ -2984,7 +2984,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     function updateCloudUI(status, message) {
       if (!els.cloudStatusText) return;
       const user = cloudStorage.user;
-      els.cloudStatusText.textContent = message;
+      const syncedAt = Number(syncMeta.lastCloudSyncedAt) || 0;
+      const statusText = status === "online" && syncedAt
+        ? `${message} · 上次同步 ${formatDateTime(syncedAt)}`
+        : message;
+      els.cloudStatusText.textContent = statusText;
       els.cloudStatusDot.classList.toggle("online", status === "online");
       els.cloudStatusDot.classList.toggle("error", status === "error");
       els.cloudLoginForm.hidden = !!user || !cloudStorage.isConfigured();
@@ -3838,6 +3842,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         event.preventDefault();
         const payload = readTemplateForm();
         if (!payload.name) return;
+        if (payload.repeat === "weekly" && !payload.weekdays.length) {
+          toast("每周重复请至少选择一天");
+          return;
+        }
         if (!validateRichEditorLength(els.templateNote, "模板任务描述")) return;
 
         if (editingTemplateId) {
@@ -5106,9 +5114,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     function getTemplateWeekdays() {
-      const checked = [...els.templateWeekdays.querySelectorAll("input[type='checkbox']:checked")]
+      return [...els.templateWeekdays.querySelectorAll("input[type='checkbox']:checked")]
         .map((input) => Number(input.value));
-      return checked.length ? checked : [1];
     }
 
     function setTemplateWeekdays(values) {
