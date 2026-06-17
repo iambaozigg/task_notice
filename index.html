@@ -36,6 +36,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     * {
       box-sizing: border-box;
+      min-width: 0;
+    }
+
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
     body {
@@ -363,6 +370,71 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     #analysisDialog .dialog-body {
       max-height: 75vh;
       overflow-y: auto;
+    }
+
+    .ai-config-alert {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 10px;
+      border: 1px solid #ead3a5;
+      border-radius: 8px;
+      background: #fff8e8;
+      color: #6e5319;
+    }
+
+    .ai-config-alert[hidden] {
+      display: none;
+    }
+
+    .ai-config-alert strong,
+    .ai-config-alert span {
+      grid-column: 1;
+    }
+
+    .ai-config-alert span {
+      font-size: 13px;
+    }
+
+    .ai-config-alert .btn {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+
+    .ai-mode-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 5px;
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #edf1e9;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ai-mode-tab {
+      flex: 1 0 88px;
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 6px;
+      color: var(--muted);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .ai-mode-tab.active {
+      background: #fff;
+      color: var(--primary-dark);
+      box-shadow: 0 3px 12px rgba(38, 49, 35, 0.08);
+    }
+
+    .ai-cache-meta {
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 12px;
     }
 
     .analysis-stats {
@@ -1015,6 +1087,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       .top-actions {
         justify-content: stretch;
         align-items: stretch;
+        max-width: 100%;
       }
 
       .cloud-card,
@@ -1048,6 +1121,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       .tabs {
         display: flex;
         grid-template-columns: none;
+        max-width: 100%;
         overflow-x: auto;
         scrollbar-width: thin;
         -webkit-overflow-scrolling: touch;
@@ -1062,31 +1136,62 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
     @media (max-width: 560px) {
       .app {
-        width: min(100% - 20px, 1180px);
-        padding-top: 16px;
+        width: 100%;
+        max-width: 1180px;
+        padding-top: 10px;
+        padding-left: 10px;
+        padding-right: 10px;
       }
 
       .brand {
         align-items: flex-start;
+        gap: 9px;
       }
 
       .mark {
-        width: 38px;
-        height: 38px;
-        font-size: 21px;
+        width: 34px;
+        height: 34px;
+        font-size: 19px;
+        border-radius: 8px;
       }
 
       h1 {
-        font-size: 30px;
+        font-size: 26px;
       }
 
       .subtitle {
-        font-size: 13px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        font-size: 12px;
+        line-height: 1.45;
       }
 
       .panel-header,
       .panel-body {
         padding: 14px;
+      }
+
+      .layout > .panel:first-child .panel-header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+        flex-wrap: wrap;
+      }
+
+      .layout > .panel:first-child .panel-header .toolbar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+      }
+
+      .layout > .panel:first-child .panel-header .btn {
+        width: 100%;
+        min-height: 36px;
+        padding: 7px 10px;
       }
 
       .top-actions {
@@ -1112,6 +1217,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       .cloud-user .btn,
       .cloud-login .btn,
       .ai-btn {
+        width: 100%;
         min-height: 42px;
       }
 
@@ -1121,16 +1227,37 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
 
       .stats {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .stat {
+        min-height: 58px;
+        padding: 8px 6px;
+        text-align: center;
+      }
+
+      .stat strong {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+
+      .stat span {
+        display: block;
+        font-size: 12px;
+        white-space: nowrap;
       }
 
       .task {
         grid-template-columns: auto minmax(0, 1fr);
         gap: 10px;
+        max-width: 100%;
       }
 
       .task-actions {
         grid-column: 2;
+        flex-wrap: wrap;
       }
 
       .check,
@@ -1140,6 +1267,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       }
 
       .rich-toolbar {
+        max-width: 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -1177,6 +1305,30 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         padding: 10px 16px;
         background: #fff;
         border-top: 1px solid var(--line);
+      }
+
+      .ai-config-alert {
+        grid-template-columns: 1fr;
+      }
+
+      .ai-config-alert .btn,
+      .ai-config-alert strong,
+      .ai-config-alert span {
+        grid-column: 1;
+        grid-row: auto;
+      }
+
+      .ai-mode-tab {
+        flex: 0 0 82px;
+      }
+
+      #analysisDialog .dialog-actions {
+        flex-direction: column-reverse;
+      }
+
+      #analysisDialog .dialog-actions .btn {
+        width: 100%;
+        min-height: 42px;
       }
     }
 
@@ -1808,13 +1960,25 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
     </form>
     <div class="dialog-body">
+      <div class="ai-config-alert" id="aiConfigAlert" hidden>
+        <strong>AI 尚未配置</strong>
+        <span>请先填写接口地址、API Key 和模型名称。</span>
+        <button class="btn" type="button" id="openAiSettingsBtn">去设置</button>
+      </div>
+      <div class="ai-mode-tabs" role="tablist" aria-label="AI 分析模式">
+        <button class="ai-mode-tab active" type="button" data-ai-mode="daily">今日</button>
+        <button class="ai-mode-tab" type="button" data-ai-mode="weekly">本周</button>
+        <button class="ai-mode-tab" type="button" data-ai-mode="monthly">近30天</button>
+        <button class="ai-mode-tab" type="button" data-ai-mode="suggestion">建议</button>
+      </div>
+      <div class="ai-cache-meta" id="analysisCacheMeta" hidden></div>
       <div class="analysis-stats" id="analysisStats"></div>
       <div id="analysisContent" style="line-height: 1.8; min-height: 100px;">点击下方按钮生成分析报告</div>
       <div class="dialog-actions">
         <button class="btn" type="button" id="closeAnalysisBtn">关闭</button>
         <button class="btn primary" type="button" id="generateAnalysisBtn">生成分析报告</button>
-        <button class="btn" type="button" id="generateWeeklyBtn">生成本周周报</button>
-        <button class="btn" type="button" id="generateDailySuggestionBtn">今日建议</button>
+        <button class="btn" type="button" id="generateWeeklyBtn" hidden>生成本周周报</button>
+        <button class="btn" type="button" id="generateDailySuggestionBtn" hidden>今日建议</button>
       </div>
     </div>
   </dialog>
@@ -2208,6 +2372,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     const STORAGE_KEY = "daily-checkin-v1";
     const LOCAL_SETTINGS_KEY = "daily-checkin-local-settings-v1";
     const SYNC_META_KEY = "daily-checkin-sync-meta-v1";
+    const AI_ANALYSIS_CACHE_KEY = "daily-checkin-ai-analysis-cache-v1";
     const TEMPLATE_LIST_HEIGHT_KEY = "daily-checkin-template-list-height";
     const CLOUD_CONFIG = {
       enabled: true,
@@ -2239,6 +2404,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     let cloudSaveTimer = null;
     let isApplyingRemoteState = false;
     let cloudSDKModulesLoaded = false;
+    let activeAnalysisMode = "daily";
+    let isGeneratingAnalysis = false;
     const defaultTemplates = [
       { id: uid(), name: "晨间整理", category: "生活", repeat: "daily", note: "规划今天最重要的三件事", images: [] },
       { id: uid(), name: "运动 20 分钟", category: "健康", repeat: "daily", note: "", images: [] },
@@ -2320,6 +2487,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       analysisDialog: document.querySelector("#analysisDialog"),
       analysisStats: document.querySelector("#analysisStats"),
       analysisContent: document.querySelector("#analysisContent"),
+      analysisCacheMeta: document.querySelector("#analysisCacheMeta"),
+      aiConfigAlert: document.querySelector("#aiConfigAlert"),
+      openAiSettingsBtn: document.querySelector("#openAiSettingsBtn"),
+      aiModeTabs: document.querySelectorAll(".ai-mode-tab"),
       closeAnalysisBtn: document.querySelector("#closeAnalysisBtn"),
       generateAnalysisBtn: document.querySelector("#generateAnalysisBtn"),
       aiStyle: document.querySelector("#aiStyle"),
@@ -3166,31 +3337,169 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       return prompts[style] || prompts.friendly;
     }
 
-    async function generateAnalysis() {
-      const content = els.analysisContent;
-      content.innerHTML = '<div class="ai-loading"><span>AI 正在分析</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
-      renderAnalysisStats("analysis");
-      els.generateAnalysisBtn.disabled = true;
-      els.generateWeeklyBtn.disabled = true;
+    function isAIConfigured() {
+      const { aiEndpoint, aiApiKey, aiModel } = state.settings || {};
+      return !!(aiEndpoint && aiApiKey && aiModel);
+    }
+
+    function loadAIAnalysisCache() {
       try {
-        const data = buildAnalysisData();
+        return JSON.parse(localStorage.getItem(AI_ANALYSIS_CACHE_KEY)) || {};
+      } catch (err) {
+        console.warn("Failed to load AI analysis cache:", err);
+        return {};
+      }
+    }
+
+    function saveAIAnalysisCache(mode, content) {
+      const cache = loadAIAnalysisCache();
+      cache[mode] = {
+        mode,
+        title: getAnalysisModeLabel(mode),
+        content,
+        createdAt: Date.now()
+      };
+      localStorage.setItem(AI_ANALYSIS_CACHE_KEY, JSON.stringify(cache));
+      return cache[mode];
+    }
+
+    function getCachedAIAnalysis(mode = activeAnalysisMode) {
+      return loadAIAnalysisCache()[mode] || null;
+    }
+
+    function getAnalysisModeLabel(mode) {
+      const labels = {
+        daily: "今日分析",
+        weekly: "本周分析",
+        monthly: "近30天分析",
+        suggestion: "今日建议"
+      };
+      return labels[mode] || labels.daily;
+    }
+
+    function getAnalysisButtonLabel(mode = activeAnalysisMode) {
+      const cached = getCachedAIAnalysis(mode);
+      return cached ? `重新生成${getAnalysisModeLabel(mode)}` : `生成${getAnalysisModeLabel(mode)}`;
+    }
+
+    function formatDateTime(timestamp) {
+      if (!timestamp) return "";
+      return new Date(timestamp).toLocaleString("zh-CN", {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function updateAIConfigAlert() {
+      els.aiConfigAlert.hidden = isAIConfigured();
+    }
+
+    function setAnalysisGenerating(isGenerating) {
+      isGeneratingAnalysis = isGenerating;
+      els.generateAnalysisBtn.disabled = isGenerating || !isAIConfigured();
+      els.aiModeTabs.forEach((button) => { button.disabled = isGenerating; });
+      els.generateAnalysisBtn.textContent = isGenerating ? "生成中..." : getAnalysisButtonLabel();
+    }
+
+    function getAnalysisStatsMode(mode = activeAnalysisMode) {
+      if (mode === "daily" || mode === "suggestion") return "daily";
+      if (mode === "weekly") return "weekly";
+      return "monthly";
+    }
+
+    function getAnalysisRequest(mode = activeAnalysisMode) {
+      if (mode === "daily") {
+        return {
+          loadingText: "AI 正在分析今日表现",
+          statsMode: "daily",
+          prompt: getAnalysisPrompt() + "\n\n这是用户今天的任务数据。请输出今日复盘：完成情况总结、未完成原因推测、明日可执行改进建议。",
+          data: buildDailySuggestionData()
+        };
+      }
+      if (mode === "weekly") {
+        return {
+          loadingText: "AI 正在生成本周分析",
+          statsMode: "weekly",
+          prompt: getAnalysisPrompt() + "\n\n这是一份周报数据，请以周报的形式输出：总结本周表现、列出亮点和不足、给出下周的改进建议。",
+          data: buildWeeklyData()
+        };
+      }
+      if (mode === "suggestion") {
+        return {
+          loadingText: "AI 正在分析今日任务",
+          statsMode: "daily",
+          prompt: getAnalysisPrompt() + "\n\n这是用户今天的任务列表和近期完成情况。请给出今日任务执行建议，包括：\n1. 建议的执行顺序和理由\n2. 每个任务的建议时间分配\n3. 针对具体任务的执行技巧\n4. 今日完成率预估和激励",
+          data: buildDailySuggestionData()
+        };
+      }
+      return {
+        loadingText: "AI 正在分析近30天数据",
+        statsMode: "monthly",
+        prompt: getAnalysisPrompt(),
+        data: buildAnalysisData()
+      };
+    }
+
+    function renderAnalysisMode(mode = activeAnalysisMode) {
+      activeAnalysisMode = mode;
+      els.aiModeTabs.forEach((button) => {
+        button.classList.toggle("active", button.dataset.aiMode === mode);
+      });
+      updateAIConfigAlert();
+      renderAnalysisStats(getAnalysisStatsMode(mode));
+      const cached = getCachedAIAnalysis(mode);
+      if (cached?.content) {
+        els.analysisCacheMeta.hidden = false;
+        els.analysisCacheMeta.textContent = `最近一次：${cached.title} · ${formatDateTime(cached.createdAt)}`;
+        els.analysisContent.innerHTML = renderMarkdown(cached.content);
+      } else {
+        els.analysisCacheMeta.hidden = true;
+        els.analysisCacheMeta.textContent = "";
+        els.analysisContent.innerHTML = `暂无${getAnalysisModeLabel(mode)}。点击下方按钮生成。`;
+      }
+      setAnalysisGenerating(false);
+    }
+
+    async function generateCurrentAnalysis() {
+      if (isGeneratingAnalysis) return;
+      updateAIConfigAlert();
+      if (!isAIConfigured()) {
+        toast("请先配置 AI 接口、API Key 和模型");
+        return;
+      }
+      const content = els.analysisContent;
+      const request = getAnalysisRequest(activeAnalysisMode);
+      content.innerHTML = `<div class="ai-loading"><span>${request.loadingText}</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+      els.analysisCacheMeta.hidden = true;
+      renderAnalysisStats(request.statsMode);
+      setAnalysisGenerating(true);
+      try {
         let fullText = "";
         try {
-          await callAIStream(getAnalysisPrompt(), data, (chunk) => {
+          await callAIStream(request.prompt, request.data, (chunk) => {
             fullText += chunk;
             content.innerHTML = renderMarkdown(fullText);
           });
         } catch (streamErr) {
-          const result = await callAI(getAnalysisPrompt(), data);
+          const result = await callAI(request.prompt, request.data);
           fullText = result;
           content.innerHTML = renderMarkdown(fullText);
         }
+        saveAIAnalysisCache(activeAnalysisMode, fullText);
+        renderAnalysisMode(activeAnalysisMode);
       } catch (err) {
-        content.innerHTML = `<div style="color:var(--danger)">分析失败：${err.message}</div>`;
+        content.innerHTML = `<div style="color:var(--danger)">生成失败：${err.message}</div>`;
       } finally {
-        els.generateAnalysisBtn.disabled = false;
-        els.generateWeeklyBtn.disabled = false;
+        setAnalysisGenerating(false);
       }
+    }
+
+    async function generateAnalysis() {
+      activeAnalysisMode = "monthly";
+      renderAnalysisMode(activeAnalysisMode);
+      await generateCurrentAnalysis();
     }
 
     function buildWeeklyData() {
@@ -3230,31 +3539,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     async function generateWeekly() {
-      const content = els.analysisContent;
-      content.innerHTML = '<div class="ai-loading"><span>AI 正在生成周报</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
-      renderAnalysisStats("weekly");
-      els.generateWeeklyBtn.disabled = true;
-      els.generateAnalysisBtn.disabled = true;
-      try {
-        const data = buildWeeklyData();
-        const weeklyPrompt = getAnalysisPrompt() + "\n\n这是一份周报数据，请以周报的形式输出：总结本周表现、列出亮点和不足、给出下周的改进建议。";
-        let fullText = "";
-        try {
-          await callAIStream(weeklyPrompt, data, (chunk) => {
-            fullText += chunk;
-            content.innerHTML = renderMarkdown(fullText);
-          });
-        } catch (streamErr) {
-          const result = await callAI(weeklyPrompt, data);
-          fullText = result;
-          content.innerHTML = renderMarkdown(fullText);
-        }
-      } catch (err) {
-        content.innerHTML = `<div style="color:var(--danger)">生成失败：${err.message}</div>`;
-      } finally {
-        els.generateWeeklyBtn.disabled = false;
-        els.generateAnalysisBtn.disabled = false;
-      }
+      activeAnalysisMode = "weekly";
+      renderAnalysisMode(activeAnalysisMode);
+      await generateCurrentAnalysis();
     }
 
     function buildDailySuggestionData() {
@@ -3285,46 +3572,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
 
     async function generateDailySuggestion() {
-      const content = els.analysisContent;
-      const today = selectedDate;
-
-      // 检查缓存
-      if (state.settings.lastSuggestionDate === today && state.settings.cachedSuggestion) {
-        renderAnalysisStats("daily");
-        content.innerHTML = renderMarkdown(state.settings.cachedSuggestion);
-        return;
-      }
-
-      content.innerHTML = '<div class="ai-loading"><span>AI 正在分析今日任务</span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
-      renderAnalysisStats("daily");
-      els.generateDailySuggestionBtn.disabled = true;
-      els.generateAnalysisBtn.disabled = true;
-      els.generateWeeklyBtn.disabled = true;
-      try {
-        const data = buildDailySuggestionData();
-        const dailyPrompt = getAnalysisPrompt() + "\n\n这是用户今天的任务列表和近期完成情况。请给出今日任务执行建议，包括：\n1. 建议的执行顺序和理由\n2. 每个任务的建议时间分配\n3. 针对具体任务的执行技巧\n4. 今日完成率预估和激励";
-        let fullText = "";
-        try {
-          await callAIStream(dailyPrompt, data, (chunk) => {
-            fullText += chunk;
-            content.innerHTML = renderMarkdown(fullText);
-          });
-        } catch (streamErr) {
-          const result = await callAI(dailyPrompt, data);
-          fullText = result;
-          content.innerHTML = renderMarkdown(fullText);
-        }
-        // 缓存结果
-        state.settings.lastSuggestionDate = today;
-        state.settings.cachedSuggestion = fullText;
-        saveState();
-      } catch (err) {
-        content.innerHTML = `<div style="color:var(--danger)">生成失败：${err.message}</div>`;
-      } finally {
-        els.generateDailySuggestionBtn.disabled = false;
-        els.generateAnalysisBtn.disabled = false;
-        els.generateWeeklyBtn.disabled = false;
-      }
+      activeAnalysisMode = "suggestion";
+      renderAnalysisMode(activeAnalysisMode);
+      await generateCurrentAnalysis();
     }
 
     async function loadDailyQuote() {
@@ -3498,13 +3748,21 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       els.deleteCloudDataBtn.addEventListener("click", deleteCloudData);
 
       els.analysisBtn.addEventListener("click", () => {
-        els.analysisContent.textContent = "点击下方按钮生成分析报告";
+        renderAnalysisMode(activeAnalysisMode);
         els.analysisDialog.showModal();
       });
       els.closeAnalysisBtn.addEventListener("click", () => els.analysisDialog.close());
-      els.generateAnalysisBtn.addEventListener("click", generateAnalysis);
+      els.generateAnalysisBtn.addEventListener("click", generateCurrentAnalysis);
       els.generateWeeklyBtn.addEventListener("click", generateWeekly);
       els.generateDailySuggestionBtn.addEventListener("click", generateDailySuggestion);
+      els.aiModeTabs.forEach((button) => {
+        button.addEventListener("click", () => renderAnalysisMode(button.dataset.aiMode));
+      });
+      els.openAiSettingsBtn.addEventListener("click", () => {
+        els.analysisDialog.close();
+        setTab("settings");
+        els.aiEndpoint.focus();
+      });
 
       els.aiStyle.addEventListener("change", () => {
         const isCustom = els.aiStyle.value === "custom";
